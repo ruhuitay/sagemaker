@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Format Python files after creation",
+      "trigger": "PostFileCreate",
+      "description": "Automatically formats Python files with ruff after they are created by the agent",
+      "matcher": "\\.(py)$",
+      "action": {
+        "type": "command",
+        "command": "uvx ruff format \"$KIRO_FILE_PATH\""
+      }
+    }
+  ]
+}

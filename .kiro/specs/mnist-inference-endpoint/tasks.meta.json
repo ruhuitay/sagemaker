@@ -1,0 +1,214 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.2 Implement model download and ONNX conversion": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709407
+      },
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554889048
+      }
+    ],
+    "1.3 Implement Triton model repository creation and packaging": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709470
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851036
+      }
+    ],
+    "1.5 Implement S3 upload with retry logic": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709491
+      },
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554889707
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851058
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555872887
+      }
+    ],
+    "2.1 Implement basic endpoint deployer": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709510
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851082
+      }
+    ],
+    "3. Checkpoint — Layer 1 complete": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709528
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851101
+      }
+    ],
+    "4.1 Implement request formatter": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709550
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851124
+      }
+    ],
+    "4.3 Implement response formatter": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709574
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851151
+      }
+    ],
+    "4.5 Implement input validator": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709596
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851177
+      }
+    ],
+    "5. Checkpoint — Layer 2 complete": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709625
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851197
+      }
+    ],
+    "6.1 Implement Lambda proxy handler": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709642
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851218
+      }
+    ],
+    "6.3 Implement API Gateway setup": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709659
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851236
+      }
+    ],
+    "7. Checkpoint — Layer 3 complete": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709680
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851255
+      }
+    ],
+    "8.1 Implement instance type validation": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709697
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851274
+      }
+    ],
+    "8.3 Implement auto-scaling configuration": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709715
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851294
+      }
+    ],
+    "8.4 Implement endpoint cleanup with ordered deletion": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709733
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851316
+      }
+    ],
+    "9. Final checkpoint — All layers complete": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554709754
+      },
+      {
+        "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
+        "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
+        "timestamp": 1784555851340
+      }
+    ],
+    "1.1 Create project structure and configuration dataclasses": [
+      {
+        "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
+        "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
+        "timestamp": 1784554885498
+      }
+    ]
+  }
+}
