@@ -1,6 +1,6 @@
 """Model packaging pipeline for MNIST inference endpoint.
 
-Downloads a pre-trained MNIST model, converts to ONNX, packages in Triton
+Loads a locally-trained MNIST model, converts to ONNX, packages in Triton
 model repository format, and uploads to S3.
 """
 
@@ -11,11 +11,10 @@ import time
 from pathlib import Path
 
 import boto3
-import requests
 from botocore.exceptions import BotoCoreError, ClientError
 
 from src.config import PackagerConfig
-from src.exceptions import DownloadError, ConversionError, ValidationError, UploadError
+from src.exceptions import ModelLoadError, ConversionError, ValidationError, UploadError
 
 import torch
 import torch.nn as nn
@@ -42,50 +41,30 @@ class MNISTNet(nn.Module):
 
 
 class ModelPackager:
-    """Downloads, converts, validates, packages, and uploads the MNIST model."""
+    """Loads, converts, validates, packages, and uploads the MNIST model."""
 
     def __init__(self, config: PackagerConfig):
-        """Initialize with configuration (source URL, S3 bucket, prefix)."""
+        """Initialize with configuration (model path, S3 bucket, prefix)."""
         self.config = config
-
-    def download_model(self) -> Path:
-        """Download pre-trained MNIST model from configured source.
-
-        Returns:
-            Path to the downloaded model file.
-
-        Raises:
-            DownloadError: On network failure or unreachable source.
-        """
-        try:
-            response = requests.get(self.config.model_source_url, stream=True)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            print(f"Failed to download model from {self.config.model_source_url}: {e}")
-            raise DownloadError(f"Failed to download model: {e}")
-
-        tmp_dir = Path(tempfile.mkdtemp())
-        model_path = tmp_dir / "mnist_model.pt"
-
-        with open(model_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-
-        print(f"Model downloaded to: {model_path}")
-        return model_path
 
     def convert_to_onnx(self, model_path: Path) -> Path:
         """Convert PyTorch model to ONNX format (opset >= 11).
 
         Args:
-            model_path: Path to the downloaded PyTorch model.
+            model_path: Path to the local PyTorch model (.pt file).
 
         Returns:
             Path to the converted ONNX model file.
 
         Raises:
-            ConversionError: If model cannot be converted.
+            ModelLoadError: If the model file does not exist.
+            ConversionError: If model cannot be loaded or converted.
         """
+        if not model_path.exists():
+            raise ModelLoadError(
+                f"Model file not found at: {model_path}"
+            )
+
         try:
             model = MNISTNet()
             state_dict = torch.load(str(model_path), map_location="cpu", weights_only=True)
@@ -250,12 +229,12 @@ class ModelPackager:
         )
 
     def run(self) -> str:
-        """Execute full pipeline: download, convert, validate, create repo, package, upload.
+        """Execute full pipeline: load, convert, validate, create repo, package, upload.
 
         Returns:
             S3 URI of the uploaded model artifact.
         """
-        model_path = self.download_model()
+        model_path = Path(self.config.model_path)
         onnx_path = self.convert_to_onnx(model_path)
         self.validate_onnx(onnx_path)
         repo_path = self.create_model_repository(onnx_path)

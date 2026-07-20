@@ -2,11 +2,11 @@
 
 ## Introduction
 
-This feature covers downloading a pre-trained MNIST handwriting recognition model, converting it to ONNX format, packaging it in a Triton model repository structure, uploading the model artifact to a test S3 bucket, and deploying it as a real-time inference endpoint using NVIDIA Triton Inference Server on SageMaker. The system enables users to submit handwritten digit images and receive classification predictions with low latency.
+This feature covers loading a locally-trained MNIST handwriting recognition model, converting it to ONNX format, packaging it in a Triton model repository structure, uploading the model artifact to a test S3 bucket, and deploying it as a real-time inference endpoint using NVIDIA Triton Inference Server on SageMaker. The system enables users to submit handwritten digit images and receive classification predictions with low latency.
 
 ## Glossary
 
-- **Model_Packager**: The component responsible for downloading a pre-trained MNIST model, converting it to ONNX format, and packaging it into a Triton-compatible model repository structure
+- **Model_Packager**: The component responsible for loading a locally-trained MNIST model from a configured file path, converting it to ONNX format, and packaging it into a Triton-compatible model repository structure
 - **Model_Artifact**: The compressed archive (model.tar.gz) containing the Triton Model_Repository structure with the ONNX model and config.pbtxt, ready for SageMaker Triton deployment
 - **Model_Repository**: The directory structure required by Triton_Inference_Server, containing a model directory with a config.pbtxt file and a numbered version subdirectory holding the ONNX model file
 - **config.pbtxt**: The Triton model configuration file specifying model name, platform (onnxruntime_onnx), input/output tensor shapes, data types, and batching settings
@@ -26,20 +26,20 @@ Requirements are organized in layers of increasing complexity. Layer 1 delivers 
 
 ### Layer 1 — Minimal Working Endpoint
 
-### Requirement 1: Download, Convert to ONNX, and Package Pre-Trained MNIST Model
+### Requirement 1: Load Local Model, Convert to ONNX, and Package for Triton
 
-**User Story:** As an ML engineer, I want to download an existing pre-trained MNIST model, convert it to ONNX format, and package it in a Triton model repository structure, so that I can deploy it on Triton Inference Server without training from scratch.
+**User Story:** As an ML engineer, I want to convert my locally-trained MNIST model to ONNX format and package it in a Triton model repository structure, so that I can deploy it on Triton Inference Server.
 
 #### Acceptance Criteria
 
-1. WHEN the Model_Packager is executed, THE Model_Packager SHALL download a pre-trained MNIST model from a configured source URL or repository
-2. WHEN the download completes, THE Model_Packager SHALL convert the pre-trained model to ONNX format with an opset version of at least 11
+1. WHEN the Model_Packager is executed, THE Model_Packager SHALL load a pre-trained MNIST model (MNISTNet architecture) from a configured local file path (.pt file containing a PyTorch state dict)
+2. WHEN the model is loaded, THE Model_Packager SHALL convert the pre-trained model to ONNX format with an opset version of at least 11
 3. WHEN the ONNX conversion completes, THE Model_Packager SHALL validate the ONNX model using the onnx.checker module to confirm structural correctness
 4. WHEN the ONNX model is validated, THE Model_Packager SHALL create a Triton Model_Repository structure containing a model directory with a config.pbtxt file and a version subdirectory (named "1") holding the ONNX model file (model.onnx)
 5. THE config.pbtxt SHALL specify the platform as "onnxruntime_onnx", define the input tensor shape as 1x28x28 (single-channel grayscale), define the output tensor shape matching the 10-class digit prediction, and set the data types for input (FP32) and output (FP32)
 6. WHEN the Model_Repository structure is created, THE Model_Packager SHALL package it into a model.tar.gz archive preserving the directory hierarchy expected by Triton_Inference_Server
-7. IF the download fails due to network issues or an unreachable source, THEN THE Model_Packager SHALL log the error details to standard output and exit with a non-zero status code
-8. IF the downloaded model file is corrupted or cannot be converted to ONNX format, THEN THE Model_Packager SHALL log a validation error and exit with a non-zero status code
+7. IF the configured model file path does not exist, THEN THE Model_Packager SHALL raise an error indicating the file was not found at the specified path
+8. IF the configured model file is not a valid PyTorch state dict compatible with the MNISTNet architecture, THEN THE Model_Packager SHALL raise an error indicating the model file is invalid or incompatible
 9. WHEN packaging completes successfully, THE Model_Packager SHALL output the local file path of the generated model.tar.gz archive
 
 ### Requirement 2: Upload Model Artifact to S3

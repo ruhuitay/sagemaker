@@ -8,13 +8,13 @@ class PackagerConfig:
     """Configuration for the model packaging pipeline.
 
     Attributes:
-        model_source_url: URL to download the pre-trained MNIST model from.
+        model_path: Path to the locally-trained .pt model file (PyTorch state dict).
         s3_bucket: S3 bucket name for uploading the model artifact.
         s3_prefix: S3 key prefix for the uploaded artifact.
         onnx_opset_version: ONNX opset version to use during conversion.
     """
 
-    model_source_url: str
+    model_path: str
     s3_bucket: str
     s3_prefix: str = "models/mnist/"
     onnx_opset_version: int = 11

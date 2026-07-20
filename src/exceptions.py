@@ -5,8 +5,8 @@ class PipelineError(Exception):
     """Base exception for all pipeline errors."""
 
 
-class DownloadError(PipelineError):
-    """Raised when model download fails due to network issues or unreachable source."""
+class ModelLoadError(PipelineError):
+    """Raised when loading the local model file fails (e.g., file not found)."""
 
 
 class ConversionError(PipelineError):
