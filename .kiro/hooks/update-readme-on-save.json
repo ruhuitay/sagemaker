@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Update README after file save",
+      "trigger": "PostFileSave",
+      "description": "Prompts the agent to update the README after every file save to keep documentation in sync",
+      "action": {
+        "type": "agent",
+        "prompt": "A file was just saved. Review the current README.md and check if it needs to be updated to reflect any new or changed functionality, modules, or configuration. If the README is already accurate, do nothing. If it needs updating, make the minimal necessary changes to keep it current."
+      }
+    }
+  ]
+}

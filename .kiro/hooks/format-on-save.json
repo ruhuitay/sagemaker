@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Format Python files on save",
+      "trigger": "PostFileSave",
+      "description": "Automatically formats Python files with ruff after they are saved",
+      "matcher": "\\.(py)$",
+      "action": {
+        "type": "command",
+        "command": "uvx ruff format \"$KIRO_FILE_PATH\""
+      }
+    }
+  ]
+}
