@@ -1,0 +1,7 @@
+{
+  "app": "python infra/app.py",
+  "context": {
+    "model_key": "models/mnist/model.tar.gz",
+    "instance_type": "ml.c5.large"
+  }
+}

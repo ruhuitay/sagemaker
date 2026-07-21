@@ -11,6 +11,8 @@ dependencies = [
     "boto3>=1.28.0",
     "torchvision>=0.28.0",
     "Pillow>=10.0.0",
+    "aws-cdk-lib>=2.150.0",
+    "constructs>=10.0.0",
 ]
 
 [project.optional-dependencies]

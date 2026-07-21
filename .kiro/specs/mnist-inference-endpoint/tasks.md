@@ -14,7 +14,7 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK t
 
 ## Tasks
 
-- [ ] 1. Layer 1 — Model Packaging and S3 Upload
+- [x] 1. Layer 1 — Model Packaging and S3 Upload
   - [x] 1.1 Create project structure and configuration dataclasses
     - Create `src/` directory with `__init__.py`
     - Define `PackagerConfig` dataclass in `src/config.py`
@@ -54,8 +54,8 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK t
     - Generate random valid bucket names and prefixes, verify URI format `s3://{bucket}/{prefix}{filename}`
     - **Validates: Requirements 2.4**
 
-- [ ] 2. Layer 1 — CDK Infrastructure Stacks
-  - [ ] 2.1 Set up CDK app structure
+- [x] 2. Layer 1 — CDK Infrastructure Stacks
+  - [x] 2.1 Set up CDK app structure
     - Create `infra/` directory with `app.py` (CDK app entry point) and `stacks/__init__.py`
     - Create `cdk.json` pointing to `infra/app.py`
     - Add CDK dependencies to `pyproject.toml` or a separate `infra/requirements.txt` (`aws-cdk-lib`, `constructs`)
@@ -63,14 +63,14 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK t
     - Accept `model_key` and `instance_type` via CDK context, set `env` to eu-west-1
     - _Requirements: 3.1_
 
-  - [ ] 2.2 Implement StorageStack
+  - [x] 2.2 Implement StorageStack
     - Create `infra/stacks/storage_stack.py` with `StorageStack(Stack)` class
     - Create S3 bucket with SSE-S3 encryption
     - Set removal policy to DESTROY with auto-delete objects (dev/test)
     - Export bucket name and bucket ARN as CloudFormation outputs (`CfnOutput`)
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 2.3 Implement SageMakerStack with CfnModel, CfnEndpointConfig, CfnEndpoint
+  - [x] 2.3 Implement SageMakerStack with CfnModel, CfnEndpointConfig, CfnEndpoint
     - Create `infra/stacks/sagemaker_stack.py` with `SageMakerStack(Stack)` class
     - Accept `model_bucket` and `model_key` as constructor params
     - Construct S3 URI internally as `s3://{model_bucket}/{model_key}`
