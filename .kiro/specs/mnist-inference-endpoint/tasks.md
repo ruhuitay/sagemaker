@@ -2,26 +2,31 @@
 
 ## Overview
 
-This plan implements an MNIST inference endpoint on SageMaker using Triton Inference Server with ONNX, following an incremental layered approach. Each layer builds on the previous one, so that after Layer 1 you have a working (minimal) endpoint invokable via boto3, and subsequent layers add formatting, external access, and production hardening.
+This plan implements an MNIST inference endpoint on SageMaker using Triton Inference Server with ONNX, following an incremental layered approach. Infrastructure is defined declaratively using **AWS CDK (Python)** — all cloud resources (SageMaker endpoint, API Gateway) are deployed via CloudFormation stacks. Cleanup is handled by `cdk destroy`.
 
-Implementation language: Python 3.12. Property-based tests use Hypothesis.
+The architecture uses **direct API Gateway → SageMaker integration** (no Lambda). API Gateway calls the SageMaker endpoint directly using an AWS service integration with IAM role-based authentication. Clients send and receive **raw Triton V2 protocol JSON** — no request/response transformation is performed.
+
+The offline model preparation pipeline (`model_packager.py`) runs before `cdk deploy` to produce the S3 model artifact. CDK stacks then reference that artifact URI to deploy the infrastructure.
+
+The CDK app deploys 3 stacks in order: `StorageStack` (S3 bucket) → `SageMakerStack` (endpoint) → `ApiStack` (API Gateway with direct SageMaker integration).
+
+Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK tests use `aws_cdk.assertions`.
 
 ## Tasks
 
 - [ ] 1. Layer 1 — Model Packaging and S3 Upload
   - [x] 1.1 Create project structure and configuration dataclasses
-    - Create Python 3.12 virtual environment (`python3.12 -m venv .venv`) and `requirements.txt` with project dependencies (torch, onnx, boto3, hypothesis)
     - Create `src/` directory with `__init__.py`
-    - Define `PackagerConfig` and `DeployerConfig` dataclasses in `src/config.py`
-    - Define custom exception classes (`DownloadError`, `ConversionError`, `ValidationError`, `UploadError`, `DeploymentError`) in `src/exceptions.py`
+    - Define `PackagerConfig` dataclass in `src/config.py`
+    - Define custom exception classes (`ConversionError`, `ValidationError`, `UploadError`) in `src/exceptions.py`
+    - Set up `pyproject.toml` with project dependencies
     - _Requirements: 1.1–1.9, 2.1–2.5_
 
   - [x] 1.2 Implement model download and ONNX conversion
     - Create `src/model_packager.py` with `ModelPackager` class
-    - Implement `download_model()` — download pre-trained MNIST PyTorch model from configured source
     - Implement `convert_to_onnx()` — convert PyTorch model to ONNX (opset >= 11) using `torch.onnx.export`
     - Implement `validate_onnx()` — validate with `onnx.checker.check_model`
-    - Handle errors: log to stdout, raise typed exceptions
+    - Handle errors: raise typed exceptions (`ModelLoadError`, `ConversionError`, `ValidationError`)
     - _Requirements: 1.1, 1.2, 1.3, 1.7, 1.8_
 
   - [x] 1.3 Implement Triton model repository creation and packaging
@@ -49,138 +54,124 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis.
     - Generate random valid bucket names and prefixes, verify URI format `s3://{bucket}/{prefix}{filename}`
     - **Validates: Requirements 2.4**
 
-- [ ] 2. Layer 1 — SageMaker Endpoint Deployment
-  - [ ] 2.1 Implement basic endpoint deployer
-    - Create `src/endpoint_deployer.py` with `EndpointDeployer` class
-    - Implement `get_triton_image_uri()` — return CPU Triton container image URI for eu-west-1
-    - Implement `create_model()` — create SageMaker model resource
-    - Implement `create_endpoint_config()` — create endpoint config with specified instance type (default: ml.c5.large, 1 instance)
-    - Implement `create_endpoint()` — create endpoint, poll until InService (timeout 15 min), handle failures by cleaning partial resources
-    - _Requirements: 3.1, 3.2, 3.4, 3.7, 3.8, 3.9_
+- [ ] 2. Layer 1 — CDK Infrastructure Stacks
+  - [ ] 2.1 Set up CDK app structure
+    - Create `infra/` directory with `app.py` (CDK app entry point) and `stacks/__init__.py`
+    - Create `cdk.json` pointing to `infra/app.py`
+    - Add CDK dependencies to `pyproject.toml` or a separate `infra/requirements.txt` (`aws-cdk-lib`, `constructs`)
+    - Wire `app.py` to instantiate 3 stacks in order: `StorageStack` → `SageMakerStack` → `ApiStack`
+    - Accept `model_key` and `instance_type` via CDK context, set `env` to eu-west-1
+    - _Requirements: 3.1_
 
-  - [ ]* 2.2 Write unit tests for endpoint deployer
-    - Test Triton image URI retrieval for eu-west-1
-    - Test default configuration (single instance, ml.c5.large)
-    - Mock SageMaker client to verify API call sequences
-    - _Requirements: 3.1, 3.8, 3.9_
+  - [ ] 2.2 Implement StorageStack
+    - Create `infra/stacks/storage_stack.py` with `StorageStack(Stack)` class
+    - Create S3 bucket with SSE-S3 encryption
+    - Set removal policy to DESTROY with auto-delete objects (dev/test)
+    - Export bucket name and bucket ARN as CloudFormation outputs (`CfnOutput`)
+    - _Requirements: 2.1, 2.2_
+
+  - [ ] 2.3 Implement SageMakerStack with CfnModel, CfnEndpointConfig, CfnEndpoint
+    - Create `infra/stacks/sagemaker_stack.py` with `SageMakerStack(Stack)` class
+    - Accept `model_bucket` and `model_key` as constructor params
+    - Construct S3 URI internally as `s3://{model_bucket}/{model_key}`
+    - Implement `CfnModel` — reference Triton CPU container image URI for eu-west-1 and constructed S3 model data URL
+    - Implement `CfnEndpointConfig` — production variant with specified instance type (default `ml.c5.large`), initial instance count = 1
+    - Implement `CfnEndpoint` — real-time inference endpoint
+    - Expose `endpoint_name` as a CloudFormation output for cross-stack reference
+    - Add instance type validation in constructor (`_validate_instance_type`) — reject GPU/accelerator types with `ValueError`
+    - _Requirements: 3.1, 3.2, 3.7, 3.8, 3.9, 6.1, 6.4, 6.5_
+
+  - [ ]* 2.4 Write CDK assertion tests for StorageStack and SageMakerStack
+    - Use `aws_cdk.assertions.Template` to verify synthesized templates contain correct resources
+    - Test: StorageStack creates S3 bucket with SSE-S3 encryption configured
+    - Test: StorageStack has CloudFormation outputs for bucket name and ARN
+    - Test: SageMakerStack correctly constructs S3 URI from `model_bucket` + `model_key`
+    - Test: CfnModel references correct container image and constructed S3 URI
+    - Test: CfnEndpointConfig uses specified instance type with 1 instance
+    - Test: CfnEndpoint resource exists
+    - Test: constructor raises `ValueError` for GPU instance types (ml.p3.2xlarge, ml.g4dn.xlarge)
+    - _Requirements: 2.1, 2.2, 3.1, 3.8, 3.9, 6.1, 6.4, 6.5_
 
 - [ ] 3. Checkpoint — Layer 1 complete
   - Ensure all tests pass, ask the user if questions arise.
-  - At this point, the system can: download model → convert to ONNX → package → upload to S3 → deploy SageMaker endpoint invokable via `boto3.invoke_endpoint()`
+  - At this point the deployment flow is:
+    ```
+    cdk deploy MnistStorageStack
+    uv run src/model_packager.py
+    cdk deploy MnistSageMakerStack
+    ```
+  - After StorageStack + model upload + SageMakerStack, the endpoint is invokable via `boto3.invoke_endpoint()`.
 
-- [ ] 4. Layer 2 — Inference Protocol and Validation
-  - [ ] 4.1 Implement request formatter
-    - Create `src/request_formatter.py` with `RequestFormatter` class
-    - Implement `format_request()` — convert flat 784-element FP32 array to Triton V2 inference protocol JSON (shape [1, 1, 28, 28], datatype "FP32", name "input")
-    - _Requirements: 4.3_
+- [ ] 4. Layer 2 — External Access (CDK ApiStack)
+  - [ ] 4.1 Implement CDK ApiStack with direct SageMaker integration
+    - Create `infra/stacks/api_stack.py` with `ApiStack(Stack)` class
+    - Accept `sagemaker_endpoint_name` as constructor parameter
+    - Create REST API with `POST /predict` method
+    - Create IAM role with `sagemaker:InvokeEndpoint` permission on the specific endpoint ARN
+    - Configure `AwsIntegration` with `service="runtime.sagemaker"`, `path="endpoints/{endpoint_name}/invocations"`
+    - Set up integration response mappings: 200 for success, `4\d{2}` → 400, `5\d{2}` → 503
+    - Add API key requirement on the method
+    - Create usage plan (10 rps rate limit, 20 burst limit)
+    - Add CloudFormation outputs: invoke URL, API key value
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.7, 5.9_
 
-  - [ ]* 4.2 Write property test for Triton request formatting
-    - **Property 4: Triton request formatting**
-    - Generate random 784-element FP32 arrays, verify output conforms to Triton V2 protocol with correct shape, datatype, name, and all values preserved
-    - **Validates: Requirements 4.3**
-
-  - [ ] 4.3 Implement response formatter
-    - Create `src/response_formatter.py` with `ResponseFormatter` class and `PredictionResponse` dataclass
-    - Implement `format_prediction()` — extract argmax as predicted digit, max value as confidence, return full probability distribution
-    - _Requirements: 4.1, 4.4, 4.7_
-
-  - [ ]* 4.4 Write property test for response formatting
-    - **Property 5: Response formatting produces valid predictions**
-    - Generate random 10-element probability distributions (non-negative, sum ≈ 1.0), verify predicted_digit == argmax index and confidence == max value in [0.0, 1.0]
-    - **Validates: Requirements 4.1, 4.4**
-
-  - [ ] 4.5 Implement input validator
-    - Create `src/input_validator.py` with `InputValidator` class and `ValidationResult` dataclass
-    - Validate: tensor shape [1, 28, 28], datatype FP32, required fields present, payload size <= 1 MB
-    - Return specific error messages identifying which constraint was violated
-    - _Requirements: 4.5, 4.6_
-
-  - [ ]* 4.6 Write property test for input validation
-    - **Property 6: Input validation rejects all invalid payloads**
-    - Generate random invalid inputs (wrong shapes, wrong types, missing fields, oversized payloads), verify all are rejected with specific error messages
-    - **Validates: Requirements 4.5**
+  - [ ]* 4.2 Write CDK assertion tests for ApiStack
+    - Verify IAM policy contains only `sagemaker:InvokeEndpoint`
+    - Verify REST API with POST method and API key required
+    - Verify usage plan with correct rate/burst limits (10 rps, 20 burst)
+    - Verify `AwsIntegration` configuration (service, path, integration responses)
+    - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
 - [ ] 5. Checkpoint — Layer 2 complete
   - Ensure all tests pass, ask the user if questions arise.
-  - At this point, the system includes request/response formatting and input validation on top of the working endpoint.
+  - At this point the deployment flow is:
+    ```
+    cdk deploy MnistStorageStack
+    uv run src/model_packager.py
+    cdk deploy MnistSageMakerStack
+    cdk deploy MnistApiStack
+    ```
+  - External applications can call `POST /predict` via API Gateway with an API key, sending raw Triton V2 JSON without needing AWS credentials.
 
-- [ ] 6. Layer 3 — External Access (Lambda Proxy + API Gateway)
-  - [ ] 6.1 Implement Lambda proxy handler
-    - Create `src/lambda_handler.py` with `handler(event, context)` function
-    - Extract request body from API Gateway proxy event
-    - Invoke SageMaker endpoint via boto3 (IAM SigV4 automatic)
-    - Format response for API Gateway proxy integration (statusCode, headers, body)
-    - Handle errors: 502 for Lambda/SageMaker failure, pass-through for SageMaker errors
-    - _Requirements: 5.1, 5.5, 5.6, 5.8_
-
-  - [ ]* 6.2 Write unit tests for Lambda handler
-    - Test event extraction from API Gateway proxy format
-    - Test error formatting (502, pass-through)
-    - Mock SageMaker runtime client
-    - _Requirements: 5.5, 5.8_
-
-  - [ ] 6.3 Implement API Gateway setup
-    - Create `src/api_gateway_setup.py` with `ApiGatewaySetup` class
-    - Implement `deploy()` — create REST API, POST /predict resource, Lambda integration, API key requirement, usage plan (10 rps, burst 20)
-    - Output invoke URL and API key value
-    - Implement `delete()` — remove all API Gateway resources in dependency order
-    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.7, 5.9, 5.10_
-
-  - [ ]* 6.4 Write unit tests for API Gateway setup
-    - Test resource creation sequence
-    - Test default usage plan limits (10 rps, burst 20)
-    - Test deletion order
-    - _Requirements: 5.3, 5.4, 5.10_
-
-- [ ] 7. Checkpoint — Layer 3 complete
-  - Ensure all tests pass, ask the user if questions arise.
-  - At this point, external applications can call the endpoint via API Gateway with an API key, without needing AWS credentials.
-
-- [ ] 8. Layer 4 — Production Hardening
-  - [ ] 8.1 Implement instance type validation
-    - Add `validate_instance_type()` to `EndpointDeployer`
-    - Accept only CPU families: ml.c4, ml.c5, ml.c5d, ml.m4, ml.m5, ml.m5d, ml.t2, ml.t3
-    - Reject GPU families (ml.p2, ml.p3, ml.p4, ml.g4dn, ml.g5, ml.inf1) and unrecognized types with descriptive error
-    - Wire validation into `create_endpoint_config()` flow
-    - _Requirements: 6.1, 6.4, 6.5_
-
-  - [ ]* 8.2 Write property test for instance type validation
-    - **Property 7: Instance type validation**
-    - Generate random instance type strings (from allowed CPU prefixes, GPU prefixes, and random strings), verify correct accept/reject classification
-    - **Validates: Requirements 6.1, 6.4, 6.5**
-
-  - [ ] 8.3 Implement auto-scaling configuration
-    - Add `configure_auto_scaling()` to `EndpointDeployer`
-    - Configure Application Auto Scaling for SageMaker endpoint variant (min 1, max 10, target: invocations per instance)
+- [ ] 6. Layer 3 — Production Hardening
+  - [ ] 6.1 Add auto-scaling configuration to SageMakerStack
+    - Add Application Auto Scaling resources to `infra/stacks/sagemaker_stack.py`
+    - Configure scalable target for SageMaker endpoint variant (min 1, max 10)
+    - Add target tracking scaling policy on `SageMakerVariantInvocationsPerInstance`
     - _Requirements: 6.2, 6.3_
 
-  - [ ] 8.4 Implement endpoint cleanup with ordered deletion
-    - Create `src/cleanup.py` with `CleanupOrchestrator` class
-    - Add `delete_endpoint()` to `EndpointDeployer` — delete endpoint → endpoint config → model in dependency order
-    - Implement `delete_all()` — delete API Gateway resources, Lambda, SageMaker resources in correct order
-    - Continue on individual failures, treat non-existent resources as already deleted
-    - Return `DeletionSummary` with per-resource status
-    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+  - [ ]* 6.2 Write property test for instance type validation
+    - **Property 4: Instance type validation**
+    - Generate random instance type strings (from allowed CPU prefixes, GPU prefixes, and random strings), verify correct accept/reject classification
+    - Test the `_validate_instance_type` logic extracted as a standalone testable function
+    - **Validates: Requirements 6.1, 6.4, 6.5**
 
-  - [ ]* 8.5 Write property test for resilient ordered deletion
-    - **Property 8: Resilient ordered deletion with complete summary**
-    - Generate random resource sets with random success/failure outcomes, verify: (a) dependency-order deletion, (b) continuation on failure, (c) non-existent treated as success, (d) complete summary
-    - **Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5**
+  - [ ]* 6.3 Write CDK assertion tests for auto-scaling
+    - Verify synthesized template contains Application Auto Scaling resources
+    - Verify min/max capacity values (1, 10)
+    - Verify target tracking policy metric is `SageMakerVariantInvocationsPerInstance`
+    - _Requirements: 6.2, 6.3_
 
-- [ ] 9. Final checkpoint — All layers complete
+- [ ] 7. Final checkpoint — All layers complete
   - Ensure all tests pass, ask the user if questions arise.
-  - Verify full system: model packaging → S3 upload → SageMaker deployment → request/response formatting → API Gateway with API key auth → auto-scaling → cleanup
+  - Verify full system: model packaging → S3 upload → `cdk deploy` (StorageStack → SageMakerStack → ApiStack) → API key auth → auto-scaling
+  - Cleanup via `cdk destroy` removes all resources in dependency order
 
 ## Notes
 
-- Use Python 3.12 virtual environment (`.venv`) for all development and testing
-- Tasks marked with `*` are optional and can be skipped for faster MVP
-- Each task references specific requirements for traceability
-- Checkpoints ensure incremental validation after each layer
-- Property tests validate universal correctness properties from the design document using Hypothesis
-- Unit tests validate specific examples and edge cases
-- The existing `download_mnist.py` in the project root may be referenced or extended for model download logic
-- Region is eu-west-1 for all AWS resources
+- **No Lambda, no formatters, no input validator** — API Gateway integrates directly with SageMaker using AWS service integration.
+- Clients send and receive **raw Triton V2 protocol JSON**. No request/response transformation is performed by the infrastructure. Triton handles input validation natively.
+- Infrastructure is managed by AWS CDK (Python). All AWS resources are deployed via `cdk deploy` and removed via `cdk destroy`.
+- CDK deploys 3 stacks in order: `StorageStack` (S3 bucket) → `SageMakerStack` (endpoint) → `ApiStack` (API Gateway with direct SageMaker integration).
+- `model_packager.py` is an offline tool that runs between StorageStack and SageMakerStack deployment to upload the model artifact to the CDK-managed bucket.
+- The `model/` folder (train.py, draw_digit.py, test_predict.py, test_predict_sample.py) already exists and is not modified by this plan.
+- Tasks marked with `*` are optional and can be skipped for faster MVP.
+- Each task references specific requirements for traceability.
+- Checkpoints ensure incremental validation after each layer.
+- Only 4 correctness properties (Properties 1–4) from the design document. Property tests use Hypothesis.
+- CDK assertion tests use `aws_cdk.assertions.Template` for snapshot and fine-grained assertions.
+- Region is eu-west-1 for all AWS resources.
+- No custom cleanup orchestrator is needed — CDK/CloudFormation handles dependency-ordered deletion natively.
 
 ## Task Dependency Graph
 
@@ -189,15 +180,14 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis.
   "waves": [
     { "id": 0, "tasks": ["1.1"] },
     { "id": 1, "tasks": ["1.2", "1.5"] },
-    { "id": 2, "tasks": ["1.3"] },
-    { "id": 3, "tasks": ["1.4", "1.6", "2.1"] },
-    { "id": 4, "tasks": ["2.2"] },
-    { "id": 5, "tasks": ["4.1", "4.3", "4.5"] },
-    { "id": 6, "tasks": ["4.2", "4.4", "4.6"] },
-    { "id": 7, "tasks": ["6.1", "6.3"] },
-    { "id": 8, "tasks": ["6.2", "6.4"] },
-    { "id": 9, "tasks": ["8.1", "8.3", "8.4"] },
-    { "id": 10, "tasks": ["8.2", "8.5"] }
+    { "id": 2, "tasks": ["1.3", "2.1"] },
+    { "id": 3, "tasks": ["1.4", "1.6", "2.2"] },
+    { "id": 4, "tasks": ["2.3"] },
+    { "id": 5, "tasks": ["2.4"] },
+    { "id": 6, "tasks": ["4.1"] },
+    { "id": 7, "tasks": ["4.2"] },
+    { "id": 8, "tasks": ["6.1"] },
+    { "id": 9, "tasks": ["6.2", "6.3"] }
   ]
 }
 ```
