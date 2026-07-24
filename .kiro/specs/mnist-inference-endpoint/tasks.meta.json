@@ -84,6 +84,21 @@
         "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
         "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
         "timestamp": 1784555851101
+      },
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784635022160
+      },
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784643426196
+      },
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784643429172
       }
     ],
     "4.1 Implement request formatter": [
@@ -132,6 +147,11 @@
         "executionId": "f499cef8-787d-4180-ade2-7f19546ee8e6",
         "chatSessionId": "sess_b7e99f81-a51c-4a59-9bbd-74b6f7cdbd59",
         "timestamp": 1784555851197
+      },
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784635022225
       }
     ],
     "6.1 Implement Lambda proxy handler": [
@@ -223,6 +243,39 @@
         "executionId": "0293d87e-c9cb-45c8-a099-5c2cccfab41a",
         "chatSessionId": "sess_7950da86-a1c3-4af7-b595-e40202ebe51b",
         "timestamp": 1784554885498
+      }
+    ],
+    "4.1 Implement CDK ApiStack with direct SageMaker integration": [
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784635022194
+      },
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784643436141
+      }
+    ],
+    "6.1 Add auto-scaling configuration to SageMakerStack": [
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784635022252
+      }
+    ],
+    "7. Final checkpoint — All layers complete": [
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784635022284
+      }
+    ],
+    "2.4 Write CDK assertion tests for StorageStack and SageMakerStack": [
+      {
+        "executionId": "0d9bb39b-a791-4161-bbb3-14c6bcb40649",
+        "chatSessionId": "sess_cab84327-30e3-4814-9709-54b753d52943",
+        "timestamp": 1784643390573
       }
     ]
   }

@@ -81,7 +81,7 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK t
     - Add instance type validation in constructor (`_validate_instance_type`) — reject GPU/accelerator types with `ValueError`
     - _Requirements: 3.1, 3.2, 3.7, 3.8, 3.9, 6.1, 6.4, 6.5_
 
-  - [ ]* 2.4 Write CDK assertion tests for StorageStack and SageMakerStack
+  - [x] 2.4 Write CDK assertion tests for StorageStack and SageMakerStack
     - Use `aws_cdk.assertions.Template` to verify synthesized templates contain correct resources
     - Test: StorageStack creates S3 bucket with SSE-S3 encryption configured
     - Test: StorageStack has CloudFormation outputs for bucket name and ARN
@@ -92,7 +92,7 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK t
     - Test: constructor raises `ValueError` for GPU instance types (ml.p3.2xlarge, ml.g4dn.xlarge)
     - _Requirements: 2.1, 2.2, 3.1, 3.8, 3.9, 6.1, 6.4, 6.5_
 
-- [ ] 3. Checkpoint — Layer 1 complete
+- [x] 3. Checkpoint — Layer 1 complete
   - Ensure all tests pass, ask the user if questions arise.
   - At this point the deployment flow is:
     ```
