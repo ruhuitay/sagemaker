@@ -11,7 +11,7 @@ app = cdk.App()
 
 # Context values (passed via cdk.json or --context)
 model_key = app.node.try_get_context("model_key") or "models/mnist/model.tar.gz"
-instance_type = app.node.try_get_context("instance_type") or "ml.c5.large"
+instance_type = app.node.try_get_context("instance_type") or "ml.g4dn.xlarge"
 
 env = cdk.Environment(region="eu-west-1")
 

@@ -88,7 +88,7 @@ flowchart TD
     Upload[uv run src/model_packager.py] --> Bucket
     CDK[cdk deploy MnistSageMakerStack] --> Model[CfnModel<br/>Triton container + S3 URI]
     Bucket -->|bucket name| Model
-    Model --> Config[CfnEndpointConfig<br/>CPU instance type]
+    Model --> Config[CfnEndpointConfig<br/>GPU instance type]
     Config --> Endpoint[CfnEndpoint<br/>Real-Time Inference]
 ```
 
@@ -155,13 +155,13 @@ Cleanup is handled by `cdk destroy` — CDK deletes resources in correct depende
 | Infrastructure tool | AWS CDK (Python) | Declarative, reproducible, proper dependency ordering, drift detection |
 | Stack separation | Separate stacks (Storage, SageMaker, API) | Independent lifecycle; bucket persists across endpoint redeployments |
 | Model format | ONNX | Triton native support, no custom inference code needed |
-| Serving container | Triton Inference Server (CPU) | Zero-code serving for ONNX, dynamic batching, high performance |
+| Serving container | Triton Inference Server (GPU) | Zero-code serving for ONNX, dynamic batching, high performance; DLC only available as GPU image |
 | Deployment mode | SageMaker Real-Time | Sub-1-second latency, no cold starts |
 | API Gateway integration | Direct AWS service integration (no Lambda) | Simplicity — no Lambda cold starts, no code to maintain, lower latency |
 | Input validation | Triton native | Triton validates tensor shape, dtype, and required fields natively |
 | Request/response format | Raw Triton V2 protocol pass-through | No transformation needed; clients speak Triton protocol directly |
 | Authentication | API Gateway + API key | External apps without AWS credentials |
-| Instance type | CPU-only (ml.c5.large default) | MNIST is lightweight; GPU overkill for 28x28 image classification |
+| Instance type | GPU (ml.g4dn.xlarge default) | Triton DLC only provides GPU container images; ml.g4dn.xlarge is the cheapest GPU option (~$0.74/hr vs ~$0.10/hr for ml.c5.large) |
 | S3 bucket encryption | SSE-S3 | Default encryption for model artifacts at rest |
 | Cleanup | `cdk destroy` | CDK handles dependency-ordered deletion natively |
 | Region | eu-west-1 | Configured deployment region |
@@ -246,15 +246,15 @@ class SageMakerStack(Stack):
     def __init__(self, scope: Construct, id: str,
                  model_bucket: str,
                  model_key: str,
-                 instance_type: str = "ml.c5.large",
+                 instance_type: str = "ml.g4dn.xlarge",
                  **kwargs):
         """
         Args:
             model_bucket: S3 bucket name containing the model artifact.
             model_key: S3 object key for the model.tar.gz artifact.
-            instance_type: CPU-only SageMaker instance type.
+            instance_type: GPU SageMaker instance type (Triton DLC requires GPU).
 
-        Raises ValueError if instance_type is not CPU-only.
+        Raises ValueError if instance_type is not a supported GPU type.
         """
 
     # Exposed attributes for cross-stack reference
@@ -262,11 +262,11 @@ class SageMakerStack(Stack):
 ```
 
 **Resources created:**
-- `CfnModel` — references S3 model artifact URI and Triton container image (CPU variant, eu-west-1)
-- `CfnEndpointConfig` — production variant with specified instance type, initial count = 1
+- `CfnModel` — references S3 model artifact URI and Triton container image (GPU, eu-west-1)
+- `CfnEndpointConfig` — production variant with specified GPU instance type, initial count = 1
 - `CfnEndpoint` — the real-time inference endpoint
 - Application Auto Scaling — target tracking on `SageMakerVariantInvocationsPerInstance` (min 1, max 10)
-- Instance type validation in constructor (rejects GPU/accelerator types)
+- Instance type validation in constructor (rejects CPU/unsupported types)
 
 ---
 
@@ -340,23 +340,17 @@ sagemaker_integration = apigw.AwsIntegration(
 
 #### Instance Type Validation (in `SageMakerStack`)
 
-The `SageMakerStack` constructor validates that the provided instance type belongs to an allowed CPU-only family.
+The `SageMakerStack` constructor validates that the provided instance type belongs to a supported GPU family.
 
 ```python
-ALLOWED_CPU_FAMILIES = [
-    "ml.c4", "ml.c5", "ml.c5d",
-    "ml.m4", "ml.m5", "ml.m5d",
-    "ml.t2", "ml.t3"
-]
-
-GPU_FAMILIES = [
-    "ml.p2", "ml.p3", "ml.p4",
-    "ml.g4dn", "ml.g5", "ml.inf1"
+ALLOWED_GPU_FAMILIES = [
+    "ml.g4dn", "ml.g5", "ml.g6",
+    "ml.p3", "ml.p4d"
 ]
 
 def _validate_instance_type(self, instance_type: str) -> None:
-    """Validate instance type is CPU-only from allowed families.
-    Raises ValueError for GPU or unsupported types."""
+    """Validate instance type is a supported GPU family for Triton.
+    Raises ValueError for CPU or unsupported types."""
 ```
 
 #### Auto-Scaling (in `SageMakerStack`)
@@ -386,7 +380,7 @@ app = cdk.App()
 
 # Context values (passed via cdk.json or --context)
 model_key = app.node.try_get_context("model_key") or "models/mnist/model.tar.gz"
-instance_type = app.node.try_get_context("instance_type") or "ml.c5.large"
+instance_type = app.node.try_get_context("instance_type") or "ml.g4dn.xlarge"
 
 env = cdk.Environment(region="eu-west-1")
 
@@ -534,15 +528,9 @@ output [
 ### Allowed Instance Types
 
 ```python
-ALLOWED_CPU_FAMILIES = [
-    "ml.c4", "ml.c5", "ml.c5d",
-    "ml.m4", "ml.m5", "ml.m5d",
-    "ml.t2", "ml.t3"
-]
-
-GPU_FAMILIES = [
-    "ml.p2", "ml.p3", "ml.p4",
-    "ml.g4dn", "ml.g5", "ml.inf1"
+ALLOWED_GPU_FAMILIES = [
+    "ml.g4dn", "ml.g5", "ml.g6",
+    "ml.p3", "ml.p4d"
 ]
 ```
 
@@ -572,7 +560,7 @@ GPU_FAMILIES = [
 
 ### Property 4: Instance type validation
 
-*For any* instance type string, the validator should accept it if and only if it starts with one of the allowed CPU-only prefixes (ml.c4, ml.c5, ml.c5d, ml.m4, ml.m5, ml.m5d, ml.t2, ml.t3). All GPU families (ml.p2, ml.p3, ml.p4, ml.g4dn, ml.g5, ml.inf1) and unrecognized types should be rejected with a descriptive error message.
+*For any* instance type string, the validator should accept it if and only if it starts with one of the allowed GPU prefixes (ml.g4dn, ml.g5, ml.g6, ml.p3, ml.p4d). All CPU-only families (ml.c4, ml.c5, ml.m4, ml.m5, ml.t2, ml.t3) and unrecognized types should be rejected with a descriptive error message.
 
 **Validates: Requirements 6.1, 6.4, 6.5**
 
@@ -611,7 +599,7 @@ GPU_FAMILIES = [
 
 | Error Scenario | Behavior |
 |---|---|
-| Invalid instance type (GPU/unknown) | CDK construct raises `ValueError` at synthesis time |
+| Invalid instance type (CPU/unknown) | CDK construct raises `ValueError` at synthesis time |
 | `cdk destroy` partial failure | CloudFormation reports which resources failed, stack enters DELETE_FAILED state |
 
 ## Testing Strategy
@@ -671,7 +659,7 @@ Integration tests verify AWS service interactions:
 
 - Endpoint accessible via HTTPS after `cdk deploy`
 - Health check returns 200 within 3 seconds
-- Container image uses CPU variant
+- Container image uses GPU variant of Triton DLC
 - ONNX opset version compatibility with container
 - API Gateway `/predict` endpoint responds to valid Triton V2 request
 - `cdk destroy` cleanly removes all resources

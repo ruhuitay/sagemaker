@@ -75,6 +75,7 @@ class ModelPackager:
             raise ConversionError(f"Failed to load PyTorch model: {e}")
 
         onnx_path = model_path.parent / "mnist_model.onnx"
+        onnx_data_path = model_path.parent / "mnist_model.onnx.data"
         dummy_input = torch.randn(1, 1, 28, 28)
 
         try:
@@ -92,7 +93,7 @@ class ModelPackager:
             raise ConversionError(f"Failed to convert model to ONNX: {e}")
 
         print(f"Model converted to ONNX: {onnx_path}")
-        return onnx_path
+        return onnx_path, onnx_data_path
 
     def validate_onnx(self, onnx_path: Path) -> None:
         """Validate ONNX model using onnx.checker.check_model.
@@ -114,7 +115,7 @@ class ModelPackager:
 
         print(f"ONNX model validated: {onnx_path}")
 
-    def create_model_repository(self, onnx_path: Path) -> Path:
+    def create_model_repository(self, onnx_path: Path, onnx_data_path: Path) -> Path:
         """Create Triton model repository directory structure.
 
         Creates the following layout:
@@ -138,7 +139,7 @@ class ModelPackager:
         # Write config.pbtxt
         config_content = (
             'name: "mnist"\n'
-            'platform: "onnxruntime_onnx"\n'
+            'backend: "onnxruntime"\n'
             'max_batch_size: 8\n'
             'input [\n'
             '  {\n'
@@ -160,6 +161,8 @@ class ModelPackager:
 
         # Copy ONNX model into version directory
         shutil.copy2(str(onnx_path), str(version_dir / "model.onnx"))
+        shutil.copy2(str(onnx_data_path), str(version_dir / "mnist_model.onnx.data"))
+       
 
         print(f"Model repository created at: {repo_root}")
         return repo_root
@@ -235,9 +238,9 @@ class ModelPackager:
             S3 URI of the uploaded model artifact.
         """
         model_path = Path(self.config.model_path)
-        onnx_path = self.convert_to_onnx(model_path)
+        onnx_path, onnx_data_path = self.convert_to_onnx(model_path)
         self.validate_onnx(onnx_path)
-        repo_path = self.create_model_repository(onnx_path)
+        repo_path = self.create_model_repository(onnx_path, onnx_data_path)
         artifact_path = self.package_artifact(repo_path)
         s3_uri = self.upload_to_s3(artifact_path)
         return s3_uri

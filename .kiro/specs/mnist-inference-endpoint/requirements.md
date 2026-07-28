@@ -67,8 +67,8 @@ Requirements are organized in layers of increasing complexity. Layer 1 delivers 
 5. WHEN the endpoint receives an inference request containing a valid input tensor, THE Inference_Endpoint SHALL return a predicted digit (0-9) with a confidence score between 0.0 and 1.0
 6. WHEN the endpoint is in "InService" status and receives an inference request, THE Inference_Endpoint SHALL return a prediction response within 1 second at the 95th percentile
 7. THE Inference_Endpoint SHALL use the SageMaker Triton container image version compatible with the ONNX opset version used during model conversion
-8. THE Inference_Endpoint SHALL use a CPU-only SageMaker instance type (e.g., ml.c5.large or ml.m5.large) for deployment
-9. THE Inference_Endpoint SHALL use the CPU variant of the Triton_Inference_Server container image from the SageMaker Deep Learning Containers registry
+8. THE Inference_Endpoint SHALL use a GPU SageMaker instance type (ml.g4dn.xlarge as the default, being the cheapest available GPU instance) for deployment, since the SageMaker Triton Inference Server DLC only provides GPU-capable container images
+9. THE Inference_Endpoint SHALL use the NVIDIA Triton_Inference_Server container image from the SageMaker Deep Learning Containers registry (GPU variant, the only available option)
 
 ---
 
@@ -119,10 +119,10 @@ Requirements are organized in layers of increasing complexity. Layer 1 delivers 
 
 #### Acceptance Criteria
 
-1. THE Inference_Endpoint SHALL be deployable on a user-specified SageMaker instance type provided at creation time, restricted to CPU-only instance families (ml.c4, ml.c5, ml.c5d, ml.m4, ml.m5, ml.m5d, ml.t2, ml.t3)
+1. THE Inference_Endpoint SHALL be deployable on a user-specified SageMaker GPU instance type provided at creation time, restricted to GPU instance families (ml.g4dn, ml.g5, ml.g6, ml.p3, ml.p4d) since the Triton DLC only supports GPU instances
 2. WHEN the endpoint is created, THE Inference_Endpoint SHALL use a single instance by default
 3. WHERE auto-scaling is configured, THE Inference_Endpoint SHALL scale the number of instances between a configured minimum (at least 1) and a configured maximum (no greater than 10) based on the average number of invocations per instance per minute
-4. IF a GPU instance type is specified (ml.p2, ml.p3, ml.p4, ml.g4dn, ml.g5, ml.inf1, or any other GPU/accelerator instance family), THEN THE Inference_Endpoint SHALL reject the deployment request with an error message indicating that only CPU-only instance types are supported
+4. IF a CPU-only instance type is specified (ml.c4, ml.c5, ml.m4, ml.m5, ml.t2, ml.t3, or any other CPU-only instance family), THEN THE Inference_Endpoint SHALL reject the deployment request with an error message indicating that the Triton DLC requires GPU instance types
 5. IF an unsupported or invalid instance type is specified, THEN THE Inference_Endpoint SHALL reject the deployment request with an error message indicating the invalid instance type
 
 ### Requirement 7: Endpoint Cleanup

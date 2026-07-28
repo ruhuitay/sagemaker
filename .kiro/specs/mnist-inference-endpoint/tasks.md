@@ -74,11 +74,11 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK t
     - Create `infra/stacks/sagemaker_stack.py` with `SageMakerStack(Stack)` class
     - Accept `model_bucket` and `model_key` as constructor params
     - Construct S3 URI internally as `s3://{model_bucket}/{model_key}`
-    - Implement `CfnModel` — reference Triton CPU container image URI for eu-west-1 and constructed S3 model data URL
-    - Implement `CfnEndpointConfig` — production variant with specified instance type (default `ml.c5.large`), initial instance count = 1
+    - Implement `CfnModel` — reference Triton GPU container image URI for eu-west-1 and constructed S3 model data URL
+    - Implement `CfnEndpointConfig` — production variant with specified GPU instance type (default `ml.g4dn.xlarge`), initial instance count = 1
     - Implement `CfnEndpoint` — real-time inference endpoint
     - Expose `endpoint_name` as a CloudFormation output for cross-stack reference
-    - Add instance type validation in constructor (`_validate_instance_type`) — reject GPU/accelerator types with `ValueError`
+    - Add instance type validation in constructor (`_validate_instance_type`) — reject CPU/unsupported types with `ValueError`
     - _Requirements: 3.1, 3.2, 3.7, 3.8, 3.9, 6.1, 6.4, 6.5_
 
   - [x] 2.4 Write CDK assertion tests for StorageStack and SageMakerStack
@@ -89,7 +89,7 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK t
     - Test: CfnModel references correct container image and constructed S3 URI
     - Test: CfnEndpointConfig uses specified instance type with 1 instance
     - Test: CfnEndpoint resource exists
-    - Test: constructor raises `ValueError` for GPU instance types (ml.p3.2xlarge, ml.g4dn.xlarge)
+    - Test: constructor raises `ValueError` for CPU instance types (ml.c5.large, ml.m5.large)
     - _Requirements: 2.1, 2.2, 3.1, 3.8, 3.9, 6.1, 6.4, 6.5_
 
 - [x] 3. Checkpoint — Layer 1 complete
@@ -142,7 +142,7 @@ Implementation language: Python 3.12. Property-based tests use Hypothesis. CDK t
 
   - [ ]* 6.2 Write property test for instance type validation
     - **Property 4: Instance type validation**
-    - Generate random instance type strings (from allowed CPU prefixes, GPU prefixes, and random strings), verify correct accept/reject classification
+    - Generate random instance type strings (from allowed GPU prefixes, CPU prefixes, and random strings), verify correct accept/reject classification
     - Test the `_validate_instance_type` logic extracted as a standalone testable function
     - **Validates: Requirements 6.1, 6.4, 6.5**
 

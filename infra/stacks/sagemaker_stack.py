@@ -5,58 +5,40 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_sagemaker as sagemaker
 from constructs import Construct
 
-# Triton Inference Server container image (CPU) for eu-west-1
+# NVIDIA Triton Inference Server DLC (GPU) for eu-west-1
+# The sagemaker-tritonserver image supports GPU instances; there is no CPU-only variant.
+# Account 763104351884 is the AWS DLC ECR account for eu-west-1.
 # See: https://github.com/aws/deep-learning-containers/blob/master/available_images.md
-TRITON_CPU_IMAGE_EU_WEST_1 = (
-    "785573368785.dkr.ecr.eu-west-1.amazonaws.com/"
-    "sagemaker-tritonserver:23.12-py3-cpu"
+TRITON_IMAGE_EU_WEST_1 = (
+    "763104351884.dkr.ecr.eu-west-1.amazonaws.com/sagemaker-tritonserver:24.05-py3"
 )
 
-ALLOWED_CPU_FAMILIES = [
-    "ml.c4",
-    "ml.c5",
-    "ml.c5d",
-    "ml.m4",
-    "ml.m5",
-    "ml.m5d",
-    "ml.t2",
-    "ml.t3",
-]
-
-GPU_FAMILIES = [
-    "ml.p2",
-    "ml.p3",
-    "ml.p4",
+ALLOWED_GPU_FAMILIES = [
     "ml.g4dn",
     "ml.g5",
-    "ml.inf1",
+    "ml.g6",
+    "ml.p3",
+    "ml.p4d",
 ]
 
 
 def validate_instance_type(instance_type: str) -> None:
-    """Validate that an instance type is CPU-only from allowed families.
+    """Validate that an instance type is a supported GPU family for Triton.
 
     Args:
-        instance_type: SageMaker instance type string (e.g. 'ml.c5.large').
+        instance_type: SageMaker instance type string (e.g. 'ml.g4dn.xlarge').
 
     Raises:
-        ValueError: If the instance type is a GPU/accelerator type or unrecognized.
+        ValueError: If the instance type is not from a supported GPU family.
     """
-    for family in ALLOWED_CPU_FAMILIES:
+    for family in ALLOWED_GPU_FAMILIES:
         if instance_type.startswith(family):
             return
 
-    for family in GPU_FAMILIES:
-        if instance_type.startswith(family):
-            raise ValueError(
-                f"GPU/accelerator instance type '{instance_type}' is not allowed. "
-                f"MNIST inference requires CPU-only instances. "
-                f"Allowed families: {', '.join(ALLOWED_CPU_FAMILIES)}"
-            )
-
     raise ValueError(
-        f"Unrecognized instance type '{instance_type}'. "
-        f"Allowed CPU families: {', '.join(ALLOWED_CPU_FAMILIES)}"
+        f"Instance type '{instance_type}' is not a supported GPU type. "
+        f"The Triton inference container requires a GPU instance. "
+        f"Allowed families: {', '.join(ALLOWED_GPU_FAMILIES)}"
     )
 
 
@@ -65,8 +47,8 @@ class SageMakerStack(Stack):
 
     Creates:
     - IAM execution role for SageMaker with S3 read access
-    - CfnModel referencing Triton container image and S3 model artifact
-    - CfnEndpointConfig with specified instance type
+    - CfnModel referencing Triton GPU container image and S3 model artifact
+    - CfnEndpointConfig with GPU instance type (ml.g4dn.xlarge default)
     - CfnEndpoint for real-time inference
 
     Auto-scaling is added in Layer 3.
@@ -78,17 +60,17 @@ class SageMakerStack(Stack):
         id: str,
         model_bucket: str,
         model_key: str,
-        instance_type: str = "ml.c5.large",
+        instance_type: str = "ml.g4dn.xlarge",
         **kwargs,
     ):
         """
         Args:
             model_bucket: S3 bucket name containing the model artifact.
             model_key: S3 object key for the model.tar.gz artifact.
-            instance_type: CPU-only SageMaker instance type.
+            instance_type: GPU SageMaker instance type (default: ml.g4dn.xlarge).
 
         Raises:
-            ValueError: If instance_type is not a CPU-only type.
+            ValueError: If instance_type is not a supported GPU type.
         """
         super().__init__(scope, id, **kwargs)
 
@@ -108,20 +90,33 @@ class SageMakerStack(Stack):
                     "AmazonSageMakerFullAccess"
                 ),
             ],
+            inline_policies={
+                "ModelBucketAccess": iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=["s3:GetObject", "s3:ListBucket"],
+                            resources=[
+                                f"arn:aws:s3:::{model_bucket}",
+                                f"arn:aws:s3:::{model_bucket}/*",
+                            ],
+                        )
+                    ]
+                )
+            },
         )
 
-        # CfnModel — references Triton container and S3 model artifact
+        # CfnModel - references Triton GPU container and S3 model artifact
         model = sagemaker.CfnModel(
             self,
             "MnistModel",
             execution_role_arn=execution_role.role_arn,
             primary_container=sagemaker.CfnModel.ContainerDefinitionProperty(
-                image=TRITON_CPU_IMAGE_EU_WEST_1,
+                image=TRITON_IMAGE_EU_WEST_1,
                 model_data_url=model_data_url,
             ),
         )
 
-        # CfnEndpointConfig — production variant with CPU instance
+        # CfnEndpointConfig - production variant with GPU instance
         endpoint_config = sagemaker.CfnEndpointConfig(
             self,
             "MnistEndpointConfig",
@@ -136,7 +131,7 @@ class SageMakerStack(Stack):
         )
         endpoint_config.add_dependency(model)
 
-        # CfnEndpoint — real-time inference endpoint
+        # CfnEndpoint - real-time inference endpoint
         endpoint = sagemaker.CfnEndpoint(
             self,
             "MnistEndpoint",
