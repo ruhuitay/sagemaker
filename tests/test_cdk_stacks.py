@@ -8,8 +8,8 @@ import pytest
 import aws_cdk as cdk
 from aws_cdk.assertions import Template, Match
 
-from infra.stacks.storage_stack import StorageStack
-from infra.stacks.sagemaker_stack import SageMakerStack
+from infra_aws.stacks.storage_stack import StorageStack
+from infra_aws.stacks.sagemaker_stack import SageMakerStack
 
 
 @pytest.fixture
