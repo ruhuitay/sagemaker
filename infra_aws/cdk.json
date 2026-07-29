@@ -1,5 +1,5 @@
 {
-  "app": "python app.py",
+  "app": "../.venv/bin/python app.py",
   "context": {
     "model_key": "models/mnist/model.tar.gz",
     "instance_type": "ml.g4dn.xlarge"
