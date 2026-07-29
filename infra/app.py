@@ -36,4 +36,17 @@ api_stack = ApiStack(
     env=env,
 )
 
+# Cost tracking tags applied to all resources
+cdk.Tags.of(app).add("Project", "mnist-inference")
+cdk.Tags.of(app).add("Owner", "ruhuitay")
+
+# Component-level tags for granular cost breakdown
+cdk.Tags.of(storage_stack).add("Component", "storage")
+cdk.Tags.of(sagemaker_stack).add("Component", "inference")
+cdk.Tags.of(api_stack).add("Component", "api")
+
+cdk.Tags.of(storage_stack).add("Owner", "ruhuitay")
+cdk.Tags.of(sagemaker_stack).add("Owner", "ruhuitay")
+cdk.Tags.of(api_stack).add("Owner", "ruhuitay")
+
 app.synth()
