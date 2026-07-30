@@ -18,8 +18,8 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
     - Create `scripts/test_endpoint_alicloud.py` (Triton V2 test against PAI-EAS endpoint)
     - Verify `infra_alicloud/config.py` still contains `ALLOWED_ALICLOUD_GPU_FAMILIES` and `VALID_ALICLOUD_REGIONS` (used by CDK stacks)
 
-- [ ] 2. Create model upload script for Alibaba Cloud OSS
-  - [-] 2.1 Create scripts/upload_model_alicloud.py
+- [x] 2. Create model upload script for Alibaba Cloud OSS
+  - [x] 2.1 Create scripts/upload_model_alicloud.py
     - Equivalent of `scripts/package_model.py` for AWS, but uploads to Alibaba Cloud OSS
     - Reads OSS bucket name and region from env vars (`OSS_BUCKET`, `ALICLOUD_REGION`) or CLI args
     - Uses `oss2` SDK to upload the Triton model repository (`model/triton_repo/`) to OSS
@@ -35,12 +35,12 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
       export ALIBABA_CLOUD_ACCESS_KEY_SECRET="..."
       uv run python scripts/upload_model_alicloud.py
       ```
-  - [-] 2.2 Add oss2 to pyproject.toml optional dependencies
+  - [x] 2.2 Add oss2 to pyproject.toml optional dependencies
     - Add `alicloud` optional dependency group: `oss2>=2.18.0`
     - Install with: `uv sync --extra alicloud`
 
 - [ ] 3. Implement Alibaba Cloud ROS CDK infrastructure stacks
-  - [~] 3.1 Add cost-tracking tags to all ROS CDK stacks
+  - [x] 3.1 Add cost-tracking tags to all ROS CDK stacks
     - Apply tags to all resources across all stacks for cost tracking:
       - `project: mnist-inference`
       - `environment: dev`
@@ -54,28 +54,28 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
       - `managed-by: aws-cdk`
       - `team: platform-engineering`
 
-  - [~] 3.2 Implement storage stack (OSS bucket)
+  - [x] 3.2 Implement storage stack (OSS bucket)
     - Create `infra_alicloud/stacks/storage_stack.py` with `StorageStack` class using ROS CDK
     - Provision OSS bucket with server-side encryption (AES256)
     - Add lifecycle rules for cost management (e.g. expire incomplete multipart uploads after 7 days)
     - Export `bucket_name` as ROS Output for cross-stack reference
     - _Requirements: 4.2, 4.6_
 
-  - [~] 3.3 Implement inference stack (PAI-EAS service)
+  - [X] 3.3 Implement inference stack (PAI-EAS service)
     - Create `infra_alicloud/stacks/eas_stack.py` with `EasStack` class using ROS CDK
     - Accept `oss_bucket_name` and `model_key` as inputs from storage stack
     - Configure PAI-EAS service with Triton Inference Server image, GPU instance, spot preference, auto-scaling
     - Export `service_name` and `endpoint_url` as ROS Outputs
     - _Requirements: 4.3, 4.5, 4.6_
 
-  - [~] 3.4 Implement access stack (authentication and network)
+  - [X] 3.4 Implement access stack (authentication and network)
     - Create `infra_alicloud/stacks/access_stack.py` with `AccessStack` class using ROS CDK
     - Accept `service_name` from inference stack
     - Configure token-based authentication and public HTTPS access
     - Export `access_token` and `public_endpoint` as ROS Outputs
     - _Requirements: 4.4, 4.5, 4.6_
 
-  - [~] 3.5 Wire stacks together in app.py
+  - [X] 3.5 Wire stacks together in app.py
     - Update `infra_alicloud/app.py` to instantiate StorageStack, EasStack, AccessStack with correct cross-stack references
     - Ensure stack dependency order: StorageStack -> EasStack -> AccessStack
     - _Requirements: 4.6_
@@ -88,7 +88,7 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
 - [ ] 4. Deploy and verify Alibaba Cloud infrastructure
-  - [~] 4.1 Deploy ROS CDK stacks
+  - [ ] 4.1 Deploy ROS CDK stacks
     - **Prerequisite**: Model must already be uploaded to OSS (task 2)
       ```bash
       cd infra_alicloud
@@ -97,7 +97,7 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
     - Note the stack outputs: `endpoint_url`, `access_token`, `bucket_name`
     - **Verify**: Check Alibaba Cloud console that OSS bucket exists and PAI-EAS service is Running
 
-  - [~] 4.2 Create and run test_endpoint_alicloud.py
+  - [ ] 4.2 Create and run test_endpoint_alicloud.py
     - Create `scripts/test_endpoint_alicloud.py` that:
       - Reads endpoint URL and token from env vars (`ALICLOUD_ENDPOINT_URL`, `ALICLOUD_API_TOKEN`)
       - Builds a Triton V2 JSON payload with a sample 784-float input (e.g. a known digit)
@@ -112,7 +112,7 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
       ```
     - **Expected**: Prints predicted digit and confidence percentage
 
-  - [~] 4.3 Rename and verify AWS test script
+  - [ ] 4.3 Rename and verify AWS test script
     - Rename `scripts/test_endpoint.py` to `scripts/test_endpoint_aws.py`
     - Verify it still works:
       ```bash
@@ -120,35 +120,35 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
       ```
     - **Expected**: Prints predicted digit and confidence from AWS SageMaker endpoint
 
-  - [~] 4.4 Verify both endpoints side-by-side
+  - [ ] 4.4 Verify both endpoints side-by-side
     - Run both test scripts with the same sample input
     - Confirm both return the same predicted digit (may differ slightly in confidence)
     - **This confirms the infrastructure layer is complete and both backends serve the same model**
 
 - [ ] 5. Implement shared Triton V2 payload builder
-  - [~] 5.1 Create payload builder module
+  - [ ] 5.1 Create payload builder module
     - Create `src/inference/payload.py` with `build_triton_payload(pixel_data: list[float]) -> dict`
     - Returns `{"inputs": [{"name": "input", "shape": [1, 1, 28, 28], "datatype": "FP32", "data": pixel_data}]}`
     - Add `parse_triton_response(response_json: dict) -> tuple[int, float, list[float]]` to extract digit, confidence, probabilities from response
     - _Requirements: 5.4_
 
 - [ ] 6. Implement provider backends and inference client
-  - [~] 6.1 Update provider backend ABC to accept pre-built payload
+  - [ ] 6.1 Update provider backend ABC to accept pre-built payload
     - Update `src/inference/providers/base.py`: `send_request(self, payload: dict) -> UnifiedResponse`
     - Providers receive the Triton V2 payload dict and only add their auth header + send
     - _Requirements: 5.1_
 
-  - [~] 6.2 Update AWS backend to use shared payload builder
+  - [ ] 6.2 Update AWS backend to use shared payload builder
     - Update `src/inference/providers/aws.py` to call `build_triton_payload()` and send with `x-api-key` header
     - Use `parse_triton_response()` to construct UnifiedResponse
     - _Requirements: 5.4, 5.5, 5.6, 5.7_
 
-  - [~] 6.3 Update Alicloud backend to use shared payload builder
+  - [ ] 6.3 Update Alicloud backend to use shared payload builder
     - Update `src/inference/providers/alicloud.py` to call `build_triton_payload()` and send with `Authorization` header
     - Use `parse_triton_response()` to construct UnifiedResponse
     - _Requirements: 5.4, 5.5, 5.6, 5.7_
 
-  - [~] 6.4 Implement InferenceClient class
+  - [ ] 6.4 Implement InferenceClient class
     - Create `src/inference/client.py` with `InferenceClient` class
     - `predict(input_data)`: validate input -> build payload -> send via provider -> return UnifiedResponse
     - `switch_provider(provider)`: in-memory provider swap
@@ -161,7 +161,7 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
     - **Property 6: Error categorization** - random status codes, assert correct categories
     - **Validates: Requirements 5.3, 5.5, 5.6**
 
-- [~] 7. Checkpoint - Verify inference client works end-to-end
+- [ ] 7. Checkpoint - Verify inference client works end-to-end
   - Run a quick integration check:
     ```python
     from src.inference.client import InferenceClient
@@ -176,7 +176,7 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
   - Ensure all existing tests still pass: `uv run pytest`
 
 - [ ] 8. Implement configuration management
-  - [~] 8.1 Implement ConfigManager with keyring integration
+  - [ ] 8.1 Implement ConfigManager with keyring integration
     - Create `src/app/config_manager.py` with `ConfigManager` class
     - Determine OS-specific config path (~/Library/Application Support/mnist-inference/ on macOS)
     - Implement `load()`, `save()`, `store_credential()`, `get_credential()`, `delete_credential()`
@@ -189,32 +189,32 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
     - **Validates: Requirements 6.1, 9.7**
 
 - [ ] 9. Implement desktop application
-  - [~] 9.1 Implement provider switcher UI component
+  - [ ] 9.1 Implement provider switcher UI component
     - Create `src/app/provider_switcher.py` with `ProviderSwitcher` class
     - Radio buttons with availability status indicators
     - _Requirements: 8.1, 8.2, 8.5_
 
-  - [~] 9.2 Implement settings dialog
+  - [ ] 9.2 Implement settings dialog
     - Create `src/app/settings_dialog.py` with `SettingsDialog` class
     - Add/edit/remove providers, masked credential fields, connectivity test
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8_
 
-  - [~] 9.3 Implement main application window
+  - [ ] 9.3 Implement main application window
     - Create `src/app/main.py` with `MnistApp` class
     - 280x280 canvas, provider switcher, predict/clear buttons, results display
     - On predict: preprocess -> build_triton_payload -> send via InferenceClient -> display
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 8.1, 8.2, 8.3, 8.5, 8.6, 8.8, 8.9_
 
-  - [~] 9.4 Implement provider switching behavior
+  - [ ] 9.4 Implement provider switching behavior
     - Wire to InferenceClient.switch_provider(), health check on switch
     - _Requirements: 8.2, 8.3, 8.4, 8.7_
 
 - [ ] 10. Implement error handling and logging
-  - [~] 10.1 Implement error display and user actions
+  - [ ] 10.1 Implement error display and user actions
     - Categorized error messages in UI with retry/switch provider options
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.9_
 
-  - [~] 10.2 Implement error logging to local file
+  - [ ] 10.2 Implement error logging to local file
     - JSON log entries to ~/Library/Application Support/mnist-inference/inference.log
     - _Requirements: 10.8_
 
@@ -222,7 +222,7 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
     - **Property 9: Error log entry completeness**
     - **Validates: Requirements 10.8**
 
-- [~] 11. Final checkpoint and cleanup
+- [ ] 11. Final checkpoint and cleanup
   - Run full test suite: `uv run pytest`
   - Verify desktop app launches: `uv run python -m src.app.main`
   - Test with both providers connected
