@@ -8,6 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Environment variables (secrets)
+.env
 data/
 
 # from cdk synth
