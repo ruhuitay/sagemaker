@@ -44,10 +44,6 @@ access_stack = AccessStack(
     service_name=eas_stack.service_name,
 )
 
-# Cost tracking tags applied to all resources (propagates to all child stacks)
-ros.Tags.of(app).add("project", "mnist-inference")
-ros.Tags.of(app).add("environment", "dev")
-ros.Tags.of(app).add("managed-by", "ros-cdk")
-ros.Tags.of(app).add("team", "platform-engineering")
+# Cost tracking tags are applied at resource level via config.COMMON_TAGS
 
 app.synth()

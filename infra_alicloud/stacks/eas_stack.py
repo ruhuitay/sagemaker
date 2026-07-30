@@ -3,6 +3,8 @@
 import ros_cdk_core as ros
 import ros_cdk_pai as pai
 
+from config import COMMON_TAGS
+
 # Official PAI-EAS Triton Inference Server image (GPU, cn-hangzhou registry)
 TRITON_IMAGE = (
     "registry.cn-hangzhou.aliyuncs.com/pai-dlc/tritonserver:23.05-py3"
@@ -129,6 +131,7 @@ class EasStack(ros.Stack):
             "MnistTritonService",
             props=pai.ServiceProps(
                 service_config=service_config,
+                labels=COMMON_TAGS,
             ),
         )
 

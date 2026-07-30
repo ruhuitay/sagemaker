@@ -20,6 +20,13 @@ VALID_ALICLOUD_REGIONS = [
     "cn-hongkong",
 ]
 
+COMMON_TAGS = {
+    "project": "mnist-inference",
+    "environment": "dev",
+    "managed-by": "ros-cdk",
+    "team": "platform-engineering",
+}
+
 
 @dataclass
 class AlicloudDeployConfig:

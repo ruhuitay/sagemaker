@@ -3,6 +3,8 @@
 import ros_cdk_core as ros
 import ros_cdk_oss as oss
 
+from config import COMMON_TAGS
+
 
 class StorageStack(ros.Stack):
     """Creates an OSS bucket for storing MNIST model artifacts.
@@ -23,6 +25,7 @@ class StorageStack(ros.Stack):
             "ModelArtifactsBucket",
             props=oss.BucketProps(
                 bucket_name=self.BUCKET_NAME,
+                tags=COMMON_TAGS,
                 server_side_encryption_configuration=oss.RosBucket.ServerSideEncryptionConfigurationProperty(
                     sse_algorithm="AES256",
                 ),
