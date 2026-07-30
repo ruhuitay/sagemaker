@@ -40,6 +40,12 @@ api_stack = ApiStack(
 cdk.Tags.of(app).add("Project", "mnist-inference")
 cdk.Tags.of(app).add("Owner", "ruhuitay")
 
+# Standardized cost-tracking tags (lowercase keys, consistent across clouds)
+cdk.Tags.of(app).add("project", "mnist-inference")
+cdk.Tags.of(app).add("environment", "dev")
+cdk.Tags.of(app).add("managed-by", "aws-cdk")
+cdk.Tags.of(app).add("team", "platform-engineering")
+
 # Component-level tags for granular cost breakdown
 cdk.Tags.of(storage_stack).add("Component", "storage")
 cdk.Tags.of(sagemaker_stack).add("Component", "inference")

@@ -46,9 +46,10 @@ config = AlicloudDeployConfig(
 #     service_name=eas_stack.service_name,
 # )
 
-# Cost tracking tags applied to all resources
-# ros.Tags.of(app).add("Project", "mnist-inference")
-# ros.Tags.of(app).add("Owner", "ruhuitay")
-# ros.Tags.of(app).add("Cloud", "alicloud")
+# Cost tracking tags applied to all resources (propagates to all child stacks)
+ros.Tags.of(app).add("project", "mnist-inference")
+ros.Tags.of(app).add("environment", "dev")
+ros.Tags.of(app).add("managed-by", "ros-cdk")
+ros.Tags.of(app).add("team", "platform-engineering")
 
 app.synth()
