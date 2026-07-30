@@ -20,6 +20,9 @@ dev = [
     "hypothesis>=6.82.0",
     "pytest>=7.4.0",
 ]
+alicloud = [
+    "oss2>=2.18.0",
+]
 
 [build-system]
 requires = ["hatchling"]
