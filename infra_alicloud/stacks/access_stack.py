@@ -42,13 +42,13 @@ class AccessStack(ros.Stack):
         # In a real deployment, the token is retrieved from the PAI-EAS API
         # after service creation. For IaC purposes, we reference it as a
         # placeholder that will be populated at deploy time.
-        self._access_token = ros.CfnParameter(
+        self._access_token = ros.RosParameter(
             self,
             "AccessToken",
-            type="String",
+            type=ros.RosParameterType.STRING,
             description="PAI-EAS service access token for API authentication",
             no_echo=True,
-            default="",
+            default_value="",
         )
 
         # Construct the public HTTPS endpoint URL for the service
@@ -57,15 +57,15 @@ class AccessStack(ros.Stack):
         )
 
         # Export access token as ROS Output
-        ros.CfnOutput(
+        ros.RosOutput(
             self,
-            "AccessToken",
+            "AccessTokenOutput",
             value=self._access_token.value_as_string,
             description="Access token for PAI-EAS service authentication",
         )
 
         # Export public endpoint as ROS Output
-        ros.CfnOutput(
+        ros.RosOutput(
             self,
             "PublicEndpoint",
             value=self._public_endpoint,
