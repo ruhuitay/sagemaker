@@ -38,8 +38,8 @@ graph TB
     Canvas --> Validator
     Validator --> Payload
     Switcher --> Payload
-    Payload -->|+ x-api-key| APIGW
-    Payload -->|+ Authorization| EAS
+    Payload -->|x-api-key header| APIGW
+    Payload -->|Authorization header| EAS
     APIGW --> SM
     SM --> ErrorHandler
     EAS --> ErrorHandler
@@ -483,3 +483,507 @@ class InferenceClient:
     def health_check(self) -> bool:
         """Check active provider health with 5s timeout."""
 ```
+
+#### 9. Input Validator (`src/inference/validation.py`)
+
+Pure validation logic, separated for testability.
+
+```python
+def validate_input(data: np.ndarray | list) -> list[float]:
+    """Validate and normalize input to flat list of 784 FP32 values.
+    Accepts:
+      - numpy array shape (28, 28)
+      - numpy array shape (1, 28, 28)
+      - flat list/array of exactly 784 numeric values
+    All values must be in range [0.0, 1.0].
+    Returns: flat list of 784 floats.
+    Raises: InputValidationError with descriptive message."""
+```
+
+#### 10. Error Categorizer (`src/inference/errors.py`)
+
+Translates provider-specific errors into provider-agnostic categories.
+
+```python
+class ErrorCategory(Enum):
+    AUTHENTICATION = "authentication"
+    TIMEOUT = "timeout"
+    NETWORK = "network"
+    SERVER_ERROR = "server_error"
+    VALIDATION = "validation"
+    UNKNOWN = "unknown"
+
+class InferenceError(Exception):
+    """Provider-agnostic inference error."""
+    category: ErrorCategory
+    message: str
+    # No provider-specific details exposed
+
+def categorize_error(exception: Exception, status_code: int | None = None) -> InferenceError:
+    """Categorize a provider error into a standard category.
+    - 401/403 -> AUTHENTICATION
+    - Timeout exceptions -> TIMEOUT
+    - ConnectionError, DNS, TLS -> NETWORK
+    - 5xx -> SERVER_ERROR
+    - Everything else -> UNKNOWN"""
+```
+
+### Layer 3 Components
+
+#### 11. Desktop App Main Window (`src/app/main.py`)
+
+Main application window using tkinter. Evolved from `model/draw_digit.py` (DigitCanvas class) with added multi-provider support. Retains existing canvas drawing, preprocessing, and Triton V2 payload logic. Adds provider switching, configurable endpoints, and credential management.
+
+```python
+class MnistApp:
+    """Main desktop application window (based on existing DigitCanvas from model/draw_digit.py).
+    
+    Reuses from draw_digit.py:
+    - 280x280 canvas with white-on-black drawing (paint method)
+    - PIL Image-based drawing with brush radius
+    - 28x28 resize + normalize preprocessing
+    - Triton V2 JSON payload construction
+    - Predict/Clear buttons and keyboard shortcuts (Enter/Escape)
+    
+    Adds:
+    - Provider switcher (radio buttons for AWS/Alicloud)
+    - Configurable endpoint URL and auth headers
+    - Settings dialog for managing providers
+    - Health check status indicators
+    - Error categorization and display
+    """
+
+    def __init__(self):
+        """Initialize tkinter root, layout all widgets."""
+
+    def on_predict(self) -> None:
+        """Handle Predict button click:
+        1. Check canvas is not blank
+        2. Check provider is configured
+        3. Preprocess canvas -> 28x28 normalized (existing logic)
+        4. Build Triton V2 payload (existing logic)
+        5. Send with provider-specific auth header
+        6. Display result or categorized error"""
+
+    def on_clear(self) -> None:
+        """Reset canvas and results display (existing logic)."""
+
+    def on_provider_switch(self, provider_id: str) -> None:
+        """Switch active provider, run health check, update status."""
+
+    def show_error(self, error: InferenceError) -> None:
+        """Display categorized error message with action buttons."""
+
+    def run(self) -> None:
+        """Start tkinter main loop."""
+```
+
+#### 12. Preprocessing (`src/app/preprocessing.py`)
+
+Extracted from `DigitCanvas.preprocess()` in `model/draw_digit.py` for reuse and testability.
+
+```python
+def preprocess_canvas(canvas_image: Image.Image, target_size: int = 28) -> list[float]:
+    """Convert PIL canvas image to 784 normalized float values.
+    Extracted from existing DigitCanvas.preprocess() method.
+    Steps:
+    1. Resize to 28x28 using PIL LANCZOS (existing logic)
+    2. Convert to numpy float32 array
+    3. Normalize pixel values to [0.0, 1.0] by dividing by 255.0
+    4. Flatten to list of 784 floats
+    Returns: list of 784 float values in range [0.0, 1.0]"""
+```
+
+#### 13. Provider Switcher (`src/app/provider_switcher.py`)
+
+UI component for selecting and switching between providers.
+
+```python
+class ProviderSwitcher:
+    """Radio button group for provider selection with status indicators."""
+
+    def __init__(self, parent, on_switch: Callable[[str], None]):
+        """Create radio buttons for each configured provider."""
+
+    def update_status(self, provider_id: str, available: bool) -> None:
+        """Update availability indicator for a provider."""
+
+    def set_active(self, provider_id: str) -> None:
+        """Highlight the active provider."""
+
+    def refresh_providers(self, providers: list[dict]) -> None:
+        """Rebuild provider list from current configuration."""
+```
+
+#### 14. Configuration Manager (`src/app/config_manager.py`)
+
+Handles persistence of provider configurations with secure credential storage.
+
+```python
+class ConfigManager:
+    """Manages provider configuration persistence."""
+
+    CONFIG_FILENAME = "multi_cloud_inference.json"
+
+    def __init__(self):
+        """Determine OS-appropriate config directory."""
+
+    def get_config_path(self) -> Path:
+        """Return platform-specific config file path:
+        - Linux: $XDG_CONFIG_HOME/mnist-inference/ or ~/.config/mnist-inference/
+        - macOS: ~/Library/Application Support/mnist-inference/
+        - Windows: %APPDATA%/mnist-inference/"""
+
+    def load(self) -> dict[str, ProviderConfig]:
+        """Load provider configs from JSON file.
+        Credentials are loaded from OS keyring.
+        Returns empty dict if file missing or invalid."""
+
+    def save(self, configs: dict[str, ProviderConfig]) -> None:
+        """Persist configs to JSON atomically (write temp, rename).
+        Credentials stored in OS keyring, not in JSON file."""
+
+    def store_credential(self, provider_id: str, credential: str) -> None:
+        """Store credential in OS keychain via keyring library."""
+
+    def get_credential(self, provider_id: str) -> str | None:
+        """Retrieve credential from OS keychain."""
+
+    def delete_credential(self, provider_id: str) -> None:
+        """Remove credential from OS keychain."""
+```
+
+#### 15. Settings Dialog (`src/app/settings_dialog.py`)
+
+Modal dialog for adding/editing provider configurations.
+
+```python
+class SettingsDialog:
+    """Modal dialog for provider configuration management."""
+
+    def __init__(self, parent, config_manager: ConfigManager):
+        """Create dialog with provider list and edit form."""
+
+    def add_provider(self, provider_type: str) -> None:
+        """Show form for new provider (AWS or Alicloud)."""
+
+    def edit_provider(self, provider_id: str) -> None:
+        """Show form pre-filled with existing config."""
+
+    def remove_provider(self, provider_id: str) -> None:
+        """Remove provider config with confirmation."""
+
+    def test_connection(self, config: ProviderConfig) -> tuple[bool, float]:
+        """Test connectivity with 10s timeout. Returns (success, response_time_ms)."""
+
+    def validate_url(self, url: str) -> bool:
+        """Validate URL format. Returns False for malformed URLs."""
+
+    def on_save(self) -> None:
+        """Validate fields, persist config, close dialog."""
+```
+
+## Data Models
+
+### UnifiedResponse
+
+```python
+@dataclass
+class UnifiedResponse:
+    """Normalized prediction result from any provider."""
+    predicted_digit: int          # 0-9, argmax of probabilities
+    confidence: float             # Max probability value (0.0-1.0)
+    probabilities: list[float]    # 10-element list, sums to ~1.0
+    provider: str                 # "AWS" or "Alicloud"
+    response_time_ms: float       # Round-trip time in milliseconds
+```
+
+### ProviderConfig
+
+```python
+@dataclass
+class ProviderConfig:
+    """Configuration for a single cloud provider."""
+    provider_id: str              # "aws" or "alicloud"
+    provider_type: str            # "aws" or "alicloud"
+    display_name: str             # Human-readable name
+    endpoint_url: str             # API endpoint URL (max 2048 chars)
+    region: str                   # Provider region (max 64 chars)
+    # credential stored in OS keyring, NOT in this object at rest
+    credential_key: str           # Keyring lookup key for this provider's credential
+```
+
+### Configuration File Schema (JSON)
+
+```json
+{
+  "version": 1,
+  "providers": {
+    "aws": {
+      "provider_type": "aws",
+      "display_name": "AWS SageMaker (eu-west-1)",
+      "endpoint_url": "https://xxx.execute-api.eu-west-1.amazonaws.com/prod/predict",
+      "region": "eu-west-1",
+      "credential_key": "mnist-inference/aws"
+    },
+    "alicloud": {
+      "provider_type": "alicloud",
+      "display_name": "Alibaba Cloud PAI-EAS (cn-hangzhou)",
+      "endpoint_url": "https://xxx.cn-hangzhou.pai-eas.aliyuncs.com/api/predict/mnist",
+      "region": "cn-hangzhou",
+      "credential_key": "mnist-inference/alicloud"
+    }
+  },
+  "active_provider": "aws"
+}
+```
+
+Credentials are stored separately in the OS keyring under the service name `mnist-inference` with keys like `mnist-inference/aws` and `mnist-inference/alicloud`.
+
+### Alicloud CDK Configuration Constants
+
+```python
+# Used by ROS CDK stacks for validation
+
+ALLOWED_ALICLOUD_GPU_FAMILIES = [
+    "ecs.gn6i", "ecs.gn6v", "ecs.gn7i", "ecs.gn7e",
+]
+
+VALID_ALICLOUD_REGIONS = [
+    "cn-shanghai", "cn-beijing", "cn-hangzhou", "cn-shenzhen",
+    "cn-guangzhou", "cn-chengdu", "cn-hongkong",
+]
+```
+
+### Request/Response Formats
+
+#### AWS (Triton V2 - existing, unchanged)
+
+Request:
+```json
+{
+  "inputs": [{"name": "input", "shape": [1, 1, 28, 28], "datatype": "FP32", "data": [0.0, ...]}]
+}
+```
+
+Response:
+```json
+{
+  "outputs": [{"name": "output", "shape": [1, 10], "datatype": "FP32", "data": [0.01, ...]}]
+}
+```
+
+Headers: `x-api-key: {api_key}`, `Content-Type: application/json`
+
+#### Alibaba Cloud (Triton V2 via PAI-EAS)
+
+Request:
+```json
+{
+  "inputs": [{"name": "input", "shape": [1, 1, 28, 28], "datatype": "FP32", "data": [0.0, ...]}]
+}
+```
+
+Response:
+```json
+{
+  "outputs": [{"name": "output", "shape": [1, 10], "datatype": "FP32", "data": [0.01, ...]}]
+}
+```
+
+Headers: `Authorization: {access_token}`, `Content-Type: application/json`
+
+> Note: Both AWS and Alicloud use the same Triton V2 inference protocol. The only difference is the authentication mechanism (x-api-key vs Authorization token) and the endpoint URL. This is why a single `build_triton_payload()` function serves both providers.
+
+### Error Log Entry Format
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "provider": "aws",
+  "endpoint_url": "https://xxx.execute-api.eu-west-1.amazonaws.com/prod/predict",
+  "error_code": 503,
+  "error_category": "server_error",
+  "message": "Service temporarily unavailable"
+}
+```
+
+Log file location:
+- Linux: `$XDG_DATA_HOME/mnist-inference/inference.log` or `~/.local/share/mnist-inference/inference.log`
+- macOS: `~/Library/Application Support/mnist-inference/inference.log`
+- Windows: `%LOCALAPPDATA%/mnist-inference/inference.log`
+
+## Correctness Properties
+
+*A property is a characteristic or behavior that should hold true across all valid executions of a system - essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+
+### Property 1: Alicloud instance type validation
+
+*For any* instance type string, the validator should accept it if and only if it starts with one of the allowed Alibaba Cloud GPU families (ecs.gn6i, ecs.gn6v, ecs.gn7i, ecs.gn7e). All other instance families and unrecognized strings should be rejected with a descriptive error message indicating the type is not supported.
+
+**Validates: Requirements 2.2, 2.4, 2.5**
+
+### Property 2: Alicloud region validation
+
+*For any* string, the region validator should accept it if and only if it belongs to the set of valid Alibaba Cloud regions. Invalid or unrecognized strings should be rejected with an error message indicating the region is not available.
+
+**Validates: Requirements 2.1, 2.6**
+
+### Property 3: Auto-scaling bounds validation
+
+*For any* pair of integers (min_replicas, max_replicas), the configuration validator should accept the pair if and only if min_replicas >= 1, max_replicas <= 3, and min_replicas <= max_replicas. Invalid bounds should be rejected with an error indicating the invalid scaling configuration.
+
+**Validates: Requirements 2.3, 2.7**
+
+### Property 4: Inference client input validation
+
+*For any* numpy array of shape (28, 28) or (1, 28, 28) or flat list of exactly 784 values, where all values are in range [0.0, 1.0], the input validator should accept it and return a flat list of 784 floats. For any input that violates shape requirements or contains out-of-range values, the validator should raise an InputValidationError with a message describing the expected vs actual format.
+
+**Validates: Requirements 5.2, 5.8, 5.9**
+
+### Property 5: Response normalization
+
+*For any* valid provider response containing a 10-element probability array (non-negative values summing to approximately 1.0), the normalizer should produce a UnifiedResponse where predicted_digit equals the argmax of the array, confidence equals the maximum value, and probabilities is the full 10-element list.
+
+**Validates: Requirements 5.3, 5.5**
+
+### Property 6: Error categorization
+
+*For any* HTTP status code or exception type from a provider, the error categorizer should produce an InferenceError with the correct category: 401/403 maps to AUTHENTICATION, timeout exceptions map to TIMEOUT, connection errors (DNS, refused, reset, TLS) map to NETWORK, 5xx maps to SERVER_ERROR, and all others map to UNKNOWN. The resulting error message should never contain provider-specific endpoint URLs or tokens.
+
+**Validates: Requirements 5.6, 10.1, 10.3, 10.4, 10.7**
+
+### Property 7: Provider config serialization round-trip
+
+*For any* valid ProviderConfig object (with valid provider_id, non-empty endpoint_url up to 2048 chars, non-empty region up to 64 chars, and valid credential_key), serializing it to JSON and deserializing should produce an equivalent ProviderConfig object.
+
+**Validates: Requirements 6.1**
+
+### Property 8: Canvas preprocessing invariant
+
+*For any* canvas image (numpy array of arbitrary dimensions with values 0-255), the preprocessing function should always produce a flat list of exactly 784 float values, each in the range [0.0, 1.0].
+
+**Validates: Requirements 7.3**
+
+### Property 9: Error log entry completeness
+
+*For any* inference error event, the log entry written to the log file should contain all required fields: provider name (non-empty string), endpoint URL (valid URL string), error code (integer or null), error category (valid ErrorCategory value), and timestamp in ISO 8601 format.
+
+**Validates: Requirements 10.8**
+
+### Property 10: URL format validation
+
+*For any* string, the URL validator should accept it if and only if it conforms to a valid URL format (scheme://host with optional port and path). Strings without a scheme, without a host, or with invalid characters should be rejected.
+
+**Validates: Requirements 9.7**
+
+### Property 11: Provider form required fields validation
+
+*For any* pair of (endpoint_url, credential) strings, the form validator should enable save if and only if both strings are non-empty after trimming whitespace. Pairs where either field is empty or whitespace-only should disable save.
+
+**Validates: Requirements 6.6, 9.2, 9.3**
+
+## Error Handling
+
+### Inference Client Errors
+
+| Error Scenario | Category | User-Facing Message |
+|---|---|---|
+| Input wrong shape | VALIDATION | "Expected 28x28 image or 784 values, got {actual_shape}" |
+| Input out of range | VALIDATION | "Pixel values must be normalized to 0.0-1.0, found values in [{min}, {max}]" |
+| Provider returns 401/403 | AUTHENTICATION | "Credentials are invalid or expired. Check provider configuration." |
+| Request timeout (>10s for UI, >30s for client) | TIMEOUT | "Request timed out. The service may be unavailable." |
+| Connection refused / DNS failure / TLS error | NETWORK | "Connection problem. Check your network connectivity." |
+| Provider returns 5xx | SERVER_ERROR | "Service is temporarily unavailable." |
+| Unknown error | UNKNOWN | "Request failed (error code: {code})." |
+
+### Desktop App Error States
+
+| State | UI Behavior |
+|---|---|
+| Canvas blank on Predict | Show inline message: "Draw a digit before predicting" |
+| No provider configured | Show inline message: "Configure a provider in Settings" |
+| Provider unreachable after switch | Show warning with "Retry" and "Switch Provider" buttons |
+| Inference in progress | Disable Predict button, show loading spinner |
+| Error received | Replace previous error, re-enable Predict button within 1s |
+| Config file corrupt/missing | Start with empty config, prompt Settings dialog |
+
+### Error Logging
+
+All inference errors are logged to the platform-appropriate log file with the following fields:
+- ISO 8601 timestamp
+- Provider name
+- Endpoint URL
+- HTTP error code (if available)
+- Error category
+- Error message
+
+Log rotation is not required for this test deployment.
+
+## Testing Strategy
+
+### Property-Based Tests
+
+Property-based tests use [Hypothesis](https://hypothesis.readthedocs.io/) (already in dev dependencies) to validate universal correctness guarantees. Each property test runs a minimum of 100 iterations.
+
+| Property | Test File | What Varies |
+|----------|-----------|-------------|
+| P1: Instance type validation | test_alicloud_config.py | Random instance type strings |
+| P2: Region validation | test_alicloud_config.py | Random region strings |
+| P3: Scaling bounds validation | test_alicloud_config.py | Random (min, max) integer pairs |
+| P4: Input validation | test_input_validation.py | Random arrays (valid/invalid shapes, values) |
+| P5: Response normalization | test_response_normalization.py | Random 10-element probability arrays |
+| P6: Error categorization | test_error_categorization.py | Random status codes, exception types |
+| P7: Config round-trip | test_config_manager.py | Random ProviderConfig objects |
+| P8: Canvas preprocessing | test_preprocessing.py | Random images (various sizes, pixel values) |
+| P9: Error log completeness | test_error_categorization.py | Random inference errors |
+| P10: URL validation | test_config_manager.py | Random strings (valid URLs, garbage) |
+| P11: Form field validation | test_config_manager.py | Random (url, credential) string pairs |
+
+Tag format: **Feature: multi-cloud-inference, Property {N}: {description}**
+
+### Unit Tests (Example-Based)
+
+Unit tests cover specific scenarios, edge cases, and integration points:
+
+**Inference Client:**
+- Health check returns true/false based on mocked response
+- Provider switch updates active_provider immediately
+- In-flight request completes on original provider after switch
+- build_triton_payload produces correct structure for known input
+
+**Desktop App:**
+- Clear button resets canvas and results
+- Blank canvas detection prevents inference
+- No-provider state disables Predict
+- Error display replaces previous error
+- Loading state disables Predict button
+
+**Configuration:**
+- Missing config file starts empty
+- Corrupt JSON file starts empty
+- Atomic write (temp file + rename)
+- Credential stored in keyring, not JSON
+
+### Integration Tests
+
+Integration tests verify cross-service behavior:
+
+**AWS (existing, extended):**
+- CDK synthesis produces valid CloudFormation template
+- API Gateway integration configuration correct in template
+
+**ROS CDK (unit tests with assertions):**
+- Storage stack synthesizes ROS template with encrypted OSS bucket
+- EAS stack synthesizes ROS template with correct PAI-EAS service config
+- Access stack outputs endpoint URL and token
+- Cross-stack references are correctly wired
+
+### Smoke Tests
+
+- Alicloud PAI-EAS endpoint responds to valid request
+- AWS API Gateway endpoint responds to valid request
+- Desktop app launches without error on target platform
+- Provider health check returns within 5 seconds
+- Config file persists across app restart
+- Credentials retrievable from OS keyring
