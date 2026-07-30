@@ -8,8 +8,8 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
 
 ## Tasks
 
-- [-] 1. Clean up obsolete files from imperative approach
-  - [-] 1.1 Remove imperative deployer and rename scripts
+- [x] 1. Clean up obsolete files from imperative approach
+  - [x] 1.1 Remove imperative deployer and rename scripts
     - Delete `src/alicloud_deployer.py` (imperative SDK deployer - replaced by ROS CDK stacks)
     - Delete `src/__pycache__/` directory (stale bytecode)
     - Delete `infra_alicloud/__pycache__/` directory (stale bytecode)
@@ -19,7 +19,7 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
     - Verify `infra_alicloud/config.py` still contains `ALLOWED_ALICLOUD_GPU_FAMILIES` and `VALID_ALICLOUD_REGIONS` (used by CDK stacks)
 
 - [ ] 2. Create model upload script for Alibaba Cloud OSS
-  - [~] 2.1 Create scripts/upload_model_alicloud.py
+  - [-] 2.1 Create scripts/upload_model_alicloud.py
     - Equivalent of `scripts/package_model.py` for AWS, but uploads to Alibaba Cloud OSS
     - Reads OSS bucket name and region from env vars (`OSS_BUCKET`, `ALICLOUD_REGION`) or CLI args
     - Uses `oss2` SDK to upload the Triton model repository (`model/triton_repo/`) to OSS
@@ -35,7 +35,7 @@ Tasks are ordered: cleanup obsolete files -> upload model to OSS -> deploy infra
       export ALIBABA_CLOUD_ACCESS_KEY_SECRET="..."
       uv run python scripts/upload_model_alicloud.py
       ```
-  - [~] 2.2 Add oss2 to pyproject.toml optional dependencies
+  - [-] 2.2 Add oss2 to pyproject.toml optional dependencies
     - Add `alicloud` optional dependency group: `oss2>=2.18.0`
     - Install with: `uv sync --extra alicloud`
 
