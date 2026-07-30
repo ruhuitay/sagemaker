@@ -18,30 +18,32 @@ class StorageStack(ros.Stack):
     def __init__(self, scope: ros.Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
-        self._bucket = oss.RosBucket(
+        self._bucket = oss.Bucket(
             self,
             "ModelArtifactsBucket",
-            bucket_name=self.BUCKET_NAME,
-            server_side_encryption_configuration={
-                "SSEAlgorithm": "AES256",
-            },
-            lifecycle_configuration={
-                "Rule": [
-                    {
-                        "ID": "AbortIncompleteMultipartUpload",
-                        "Prefix": "",
-                        "Status": "Enabled",
-                        "AbortMultipartUpload": {
-                            "Days": 7,
-                        },
-                    },
-                ],
-            },
-            deletion_force=True,
+            props=oss.BucketProps(
+                bucket_name=self.BUCKET_NAME,
+                server_side_encryption_configuration=oss.RosBucket.ServerSideEncryptionConfigurationProperty(
+                    sse_algorithm="AES256",
+                ),
+                lifecycle_configuration=oss.RosBucket.LifecycleConfigurationProperty(
+                    rule=[
+                        oss.RosBucket.RuleProperty(
+                            prefix="",
+                            status="Enabled",
+                            id="AbortIncompleteMultipartUpload",
+                            abort_multipart_upload=oss.RosBucket.AbortMultipartUploadProperty(
+                                days=7,
+                            ),
+                        ),
+                    ],
+                ),
+                deletion_force=True,
+            ),
         )
 
         # ROS Output for cross-stack reference
-        ros.CfnOutput(
+        ros.RosOutput(
             self,
             "BucketName",
             value=self.BUCKET_NAME,
