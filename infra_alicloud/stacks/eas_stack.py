@@ -1,7 +1,5 @@
 """ROS CDK stack for the PAI-EAS Triton inference service."""
 
-import json
-
 import ros_cdk_core as ros
 import ros_cdk_pai as pai
 
@@ -126,10 +124,12 @@ class EasStack(ros.Stack):
         }
 
         # Create the PAI-EAS service resource (ALIYUN::PAI::Service)
-        self._service = pai.RosService(
+        self._service = pai.Service(
             self,
             "MnistTritonService",
-            service_config=json.dumps(service_config),
+            props=pai.ServiceProps(
+                service_config=service_config,
+            ),
         )
 
         # Store values for outputs and properties
@@ -140,14 +140,14 @@ class EasStack(ros.Stack):
         )
 
         # ROS Outputs for cross-stack reference
-        ros.CfnOutput(
+        ros.RosOutput(
             self,
             "ServiceName",
             value=self._service_name,
             description="PAI-EAS service name",
         )
 
-        ros.CfnOutput(
+        ros.RosOutput(
             self,
             "EndpointUrl",
             value=self._endpoint_url,
