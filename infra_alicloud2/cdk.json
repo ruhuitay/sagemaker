@@ -1,5 +1,5 @@
 {
-	"app": ".venv/bin/python app.py",
+	"app": "python3 app.py",
 	"context": {
 		"ros-cdk:enableStackNameDuplicates": "true",
 		"ros-cdk:enableDiffNoFail": "true"

@@ -1,4 +1,4 @@
-ros
+
 # Welcome to your ROS CDK Python project!
 
 This is a blank project for Python development with ROS CDK.

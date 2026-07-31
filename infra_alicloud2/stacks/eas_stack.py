@@ -54,9 +54,9 @@ class EasStack(ros.Stack):
     def __init__(
         self,
         scope: ros.Construct,
-        id: str,
-        oss_bucket_name: str,
-        model_key: str,
+        construct_id: str,
+        oss_bucket_name: str = "mnist-model-artifacts-alicloud",
+        model_key: str = "model/triton_repo/",
         instance_type: str = "ecs.gn6i-c4g1.xlarge",
         use_spot: bool = True,
         min_replicas: int = 1,
@@ -78,7 +78,7 @@ class EasStack(ros.Stack):
             ValueError: If instance_type is not a supported GPU type.
             ValueError: If min_replicas > max_replicas.
         """
-        super().__init__(scope, id, **kwargs)
+        super().__init__(scope, construct_id, **kwargs)
 
         # Validate inputs
         validate_instance_type(instance_type)

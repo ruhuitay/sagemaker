@@ -1,24 +1,14 @@
-"""ROS CDK stack for the OSS bucket that stores model artifacts."""
-
 import ros_cdk_core as ros
 import ros_cdk_oss as oss
-
 from config import COMMON_TAGS
 
+class StorageStack(ros.Stack):        
 
-class StorageStack(ros.Stack):
-    """Creates an OSS bucket for storing MNIST model artifacts.
+    def __init__(self, scope: ros.Construct, construct_id: str, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
 
-    The bucket is configured with:
-    - Server-side encryption (AES256)
-    - Lifecycle rules to abort incomplete multipart uploads after 7 days
-    - Force deletion enabled for dev/test cleanup
-    """
-
-    BUCKET_NAME = "mnist-model-artifacts-alicloud"
-
-    def __init__(self, scope: ros.Construct, id: str, **kwargs) -> None:
-        super().__init__(scope, id, **kwargs)
+        # The code that defines your stack goes here
+        self.BUCKET_NAME = "mnist-model-artifacts-alicloud"
 
         self._bucket = oss.Bucket(
             self,
@@ -57,3 +47,4 @@ class StorageStack(ros.Stack):
     def bucket_name(self) -> str:
         """The name of the OSS bucket (for cross-stack references)."""
         return self.BUCKET_NAME
+    

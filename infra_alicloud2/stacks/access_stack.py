@@ -23,8 +23,8 @@ class AccessStack(ros.Stack):
     def __init__(
         self,
         scope: ros.Construct,
-        id: str,
-        service_name: str,
+        construct_id: str,
+        service_name: str= "mnist-triton-eas",
         **kwargs,
     ) -> None:
         """Create access configuration for a PAI-EAS service.
@@ -34,7 +34,7 @@ class AccessStack(ros.Stack):
             id: Logical stack ID.
             service_name: Name of the PAI-EAS service (from EasStack).
         """
-        super().__init__(scope, id, **kwargs)
+        super().__init__(scope, construct_id, **kwargs)
 
         self._service_name = service_name
 
