@@ -15,3 +15,10 @@ data/
 
 # from cdk synth
 cdk.out
+
+#alicloud
+account.config.json
+stack.info.json
+.md5
+setup.py
+source.bat
