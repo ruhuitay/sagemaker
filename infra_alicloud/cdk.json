@@ -1,8 +1,9 @@
 {
   "app": "../.venv/bin/python app.py",
+  "languageInfo": "python",
   "context": {
     "model_key": "models/mnist/model.onnx",
     "instance_type": "ecs.gn6i-c4g1.xlarge",
     "region": "cn-hangzhou"
-  }
+}
 }
