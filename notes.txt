@@ -1,0 +1,5 @@
+manually created resources in alibaba
+
+- vpc
+- vswitch
+- security group

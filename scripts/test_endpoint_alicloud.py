@@ -4,7 +4,7 @@ Sends a sample 28x28 image to the Triton V2 endpoint on PAI-EAS
 and prints the predicted digit, confidence, and response time.
 
 Usage:
-    export ALICLOUD_ENDPOINT_URL="https://xxx.cn-hangzhou.pai-eas.aliyuncs.com/api/predict/mnist"
+    export ALICLOUD_ENDPOINT_URL="https://xxx.eu-central-1.pai-eas.aliyuncs.com/api/predict/mnist"
     export ALICLOUD_API_TOKEN="your-access-token"
     uv run python scripts/test_endpoint_alicloud.py
 """

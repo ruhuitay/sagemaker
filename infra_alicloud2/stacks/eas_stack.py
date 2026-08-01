@@ -7,7 +7,7 @@ from config import COMMON_TAGS
 
 # Official PAI-EAS Triton Inference Server image (GPU, cn-hangzhou registry)
 TRITON_IMAGE = (
-    "registry.cn-hangzhou.aliyuncs.com/pai-dlc/tritonserver:23.05-py3"
+    "registry.eu-central-1.aliyuncs.com/pai-dlc/tritonserver:23.05-py3"
 )
 
 ALLOWED_GPU_FAMILIES = [
@@ -60,7 +60,7 @@ class EasStack(ros.Stack):
         instance_type: str = "ecs.gn6i-c4g1.xlarge",
         use_spot: bool = True,
         min_replicas: int = 1,
-        max_replicas: int = 3,
+        max_replicas: int = 1,
         **kwargs,
     ) -> None:
         """
@@ -93,7 +93,7 @@ class EasStack(ros.Stack):
         model_oss_path = f"oss://{oss_bucket_name}/{model_key}"
 
         # Service name derived from stack id
-        service_name = "mnist-triton-eas"
+        service_name = "mnist77f16ad35c51"
 
         # Build the PAI-EAS service configuration
         service_config = {
@@ -139,7 +139,7 @@ class EasStack(ros.Stack):
         self._service_name = service_name
         # PAI-EAS endpoint URL pattern for cn-hangzhou region
         self._endpoint_url = (
-            f"https://{service_name}.cn-hangzhou.pai-eas.aliyuncs.com/api/predict/content"
+            f"https://{service_name}.eu-central-1.pai-eas.aliyuncs.com/api/predict/content"
         )
 
         # ROS Outputs for cross-stack reference

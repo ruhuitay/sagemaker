@@ -17,7 +17,7 @@ class AccessStack(ros.Stack):
 
     # PAI-EAS endpoint URL pattern for the cn-hangzhou region
     _ENDPOINT_PATTERN = (
-        "https://{service_name}.cn-hangzhou.pai-eas.aliyuncs.com/api/predict/{service_name}"
+        "https://{service_name}.eu-central-1.pai-eas.aliyuncs.com/api/predict/{service_name}"
     )
 
     def __init__(

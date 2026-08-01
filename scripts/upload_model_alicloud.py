@@ -11,7 +11,7 @@ Run this BEFORE deploying ROS CDK stacks since EasStack references the model pat
 
 Usage:
     export OSS_BUCKET="mnist-model-artifacts-alicloud"
-    export ALICLOUD_REGION="cn-hangzhou"
+    export ALICLOUD_REGION="eu-central-1"
     export ALIBABA_CLOUD_ACCESS_KEY_ID="..."
     export ALIBABA_CLOUD_ACCESS_KEY_SECRET="..."
     uv run python scripts/upload_model_alicloud.py
