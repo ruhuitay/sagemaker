@@ -7,14 +7,14 @@ from config import COMMON_TAGS
 
 # Official PAI-EAS Triton Inference Server image (GPU, cn-hangzhou registry)
 TRITON_IMAGE = (
-    "registry.eu-central-1.aliyuncs.com/pai-dlc/tritonserver:23.05-py3"
+    "eas-registry-vpc.eu-central-1.cr.aliyuncs.com/pai-eas/tritonserver:25.03-py3"
 )
 
 ALLOWED_GPU_FAMILIES = [
-    "ecs.gn6i",
-    "ecs.gn6v",
-    "ecs.gn7i",
-    "ecs.gn7e",
+    "ecs.c8a",
+    "ecs.c9a",
+    "ecs.c9i",
+    "ecs.c7",
 ]
 
 
@@ -56,8 +56,8 @@ class EasStack(ros.Stack):
         scope: ros.Construct,
         construct_id: str,
         oss_bucket_name: str = "mnist-model-artifacts-alicloud",
-        model_key: str = "model/triton_repo/",
-        instance_type: str = "ecs.gn6i-c4g1.xlarge",
+        model_key: str = "models/triton/",
+        instance_type: str = "ecs.c9a.large",
         use_spot: bool = True,
         min_replicas: int = 1,
         max_replicas: int = 1,
@@ -97,33 +97,40 @@ class EasStack(ros.Stack):
 
         # Build the PAI-EAS service configuration
         service_config = {
-            "name": service_name,
-            "model_path": model_oss_path,
-            "processor": "triton",
-            "image": TRITON_IMAGE,
-            "instance_type": instance_type,
-            "cloud": {
-                "computing": {
-                    "instance_type": instance_type,
-                    "use_spot_instance": use_spot,
+                "cloud": {
+                    "computing": {
+                        "instance_type": instance_type
+                    },
                 },
-            },
-            "scaling": {
-                "min_replica": min_replicas,
-                "max_replica": max_replicas,
-                "auto_scaling": {
-                    "enabled": True,
-                    "metric": "qps",
-                    "target": 10,
-                    "min_replica": min_replicas,
-                    "max_replica": max_replicas,
+                "containers": [
+                    {
+                        "image": TRITON_IMAGE,
+                        "command": "tritonserver --model-repository=/models",
+                        "port": 8000,
+                    }
+                ],
+                "labels": {
+                    "$SYSTEM_SERVICE_DEPLOY_TYPE": "triton"
                 },
-            },
-            "metadata": {
-                "instance": instance_type,
-                "enable_webservice": True,
-            },
-        }
+                "metadata": {
+                    "cpu": 2,
+                    "instance": 1,
+                    "memory": 4000,
+                    "name": "mnist_test2",
+                    "workspace_id": "272198"
+                },
+                "storage": [
+                    {
+                        "mount_path": "/models",
+                        "oss": {
+                            "path": model_oss_path,
+                            "readOnly": False
+                        },
+                    },
+                  
+                ],
+            }
+
 
         # Create the PAI-EAS service resource (ALIYUN::PAI::Service)
         self._service = pai.Service(
@@ -137,7 +144,7 @@ class EasStack(ros.Stack):
 
         # Store values for outputs and properties
         self._service_name = service_name
-        # PAI-EAS endpoint URL pattern for cn-hangzhou region
+        # PAI-EAS endpoint URL pattern for eu-central-1 region
         self._endpoint_url = (
             f"https://{service_name}.eu-central-1.pai-eas.aliyuncs.com/api/predict/content"
         )

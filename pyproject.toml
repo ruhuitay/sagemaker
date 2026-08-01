@@ -8,6 +8,10 @@ dependencies = [
     "python-dotenv==1.2.2",
     "oss2>=2.18.0",
     "boto3>=1.28.0",
+    "tritonclient[http]>=2.71.0",
+    "ros-cdk-core==1.14.0",
+    "ros-cdk-oss==1.14.0",
+    "ros-cdk-pai==1.14.0",
 ]
 
 [build-system]
