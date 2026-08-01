@@ -41,10 +41,10 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 # Local path to the Triton model repository
-TRITON_REPO_DIR = Path(__file__).resolve().parent.parent / "model" / "triton_repo"
+TRITON_REPO_DIR = Path(__file__).resolve().parent.parent / "model" / "triton"
 
 # OSS prefix for uploaded model files
-OSS_PREFIX = "models"
+OSS_PREFIX = "models/triton"
 
 # Retry configuration
 MAX_RETRIES = 3
