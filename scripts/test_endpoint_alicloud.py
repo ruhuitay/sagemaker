@@ -1,22 +1,16 @@
-"""Test invoke the Alibaba Cloud PAI-EAS MNIST endpoint.
-
-Sends a sample 28x28 image to the Triton V2 endpoint on PAI-EAS
-and prints the predicted digit, confidence, and response time.
-
-Usage:
-    export ALICLOUD_ENDPOINT_URL="https://xxx.eu-central-1.pai-eas.aliyuncs.com/api/predict/mnist"
-    export ALICLOUD_API_TOKEN="your-access-token"
-    uv run python scripts/test_endpoint_alicloud.py
-"""
-
-import json
-import os
-import sys
-import time
-
 import numpy as np
-import requests
+from dotenv import load_dotenv
+import os
+# To install the tritonclient package, run the following command: pip install tritonclient
+import tritonclient.http as httpclient
 
+load_dotenv() 
+
+# The public endpoint generated after the service is deployed. Do not include the http:// prefix.
+url = os.environ["EAS_URL"]
+token = os.environ["EAS_TOKEN"]
+
+triton_client = httpclient.InferenceServerClient(url=url)
 
 def create_sample_input() -> list[float]:
     """Create a sample MNIST-like input (a rough '7' shape).
@@ -41,90 +35,26 @@ def create_sample_input() -> list[float]:
     image[0, 0, 18, 10:12] = 1.0
     image[0, 0, 19, 10:12] = 1.0
     image[0, 0, 20, 10:12] = 1.0
-    return image.flatten().tolist()
+    return image
 
+image = create_sample_input()
+print(image)
+image = image.astype(np.float32)
 
-def invoke_endpoint(endpoint_url: str, token: str) -> None:
-    """Invoke the PAI-EAS Triton endpoint with a sample input."""
-    # Build Triton V2 JSON payload
-    pixel_data = create_sample_input()
-    payload = {
-        "inputs": [
-            {
-                "name": "input",
-                "shape": [1, 1, 28, 28],
-                "datatype": "FP32",
-                "data": pixel_data,
-            }
-        ]
-    }
+inputs = []
+inputs.append(httpclient.InferInput('input', image.shape, "FP32"))
+inputs[0].set_data_from_numpy(image, binary_data=False)
+outputs = []
+outputs.append(httpclient.InferRequestedOutput('output', binary_data=False))  # Get a 1000-dimensional vector.
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": token,
-    }
-
-    print(f"Invoking endpoint: {endpoint_url}")
-    print("=" * 50)
-
-    start_time = time.time()
-    response = requests.post(
-        endpoint_url,
-        headers=headers,
-        json=payload,
-        timeout=30,
-    )
-    elapsed_ms = (time.time() - start_time) * 1000
-
-    if response.status_code != 200:
-        print(f"ERROR: HTTP {response.status_code}")
-        print(f"Response: {response.text}")
-        sys.exit(1)
-
-    result = response.json()
-
-    # Parse prediction from Triton V2 response
-    outputs = result.get("outputs", [])
-    if not outputs:
-        print("ERROR: No outputs in response")
-        print(f"Raw response: {json.dumps(result, indent=2)}")
-        sys.exit(1)
-
-    logits = outputs[0]["data"]
-    predicted_digit = int(np.argmax(logits))
-    confidence = float(np.max(logits))
-
-    print(f"Predicted digit: {predicted_digit}")
-    print(f"Confidence: {confidence:.4f} ({confidence * 100:.1f}%)")
-    print(f"Response time: {elapsed_ms:.0f}ms")
-    print(f"\nAll scores: {[f'{x:.4f}' for x in logits]}")
-
-
-def main() -> None:
-    """Entry point - read config from env vars and invoke endpoint."""
-    endpoint_url = os.environ.get("ALICLOUD_ENDPOINT_URL")
-    token = os.environ.get("ALICLOUD_API_TOKEN")
-
-    if not endpoint_url:
-        print("ERROR: ALICLOUD_ENDPOINT_URL environment variable is not set")
-        sys.exit(1)
-
-    if not token:
-        print("ERROR: ALICLOUD_API_TOKEN environment variable is not set")
-        sys.exit(1)
-
-    try:
-        invoke_endpoint(endpoint_url, token)
-    except requests.exceptions.Timeout:
-        print("ERROR: Request timed out (30s)")
-        sys.exit(1)
-    except requests.exceptions.ConnectionError as e:
-        print(f"ERROR: Connection failed - {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"ERROR: {e}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
+# Specify the model name, request token, inputs, and outputs.
+results = triton_client.infer(
+    model_name="mnist",
+    model_version="1",
+    inputs=inputs,
+    outputs=outputs,
+    headers={"Authorization": token},
+)
+output_data0 = results.as_numpy('output')
+print(output_data0.shape)
+print(output_data0)
